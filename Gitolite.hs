@@ -1,60 +1,24 @@
-{-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
-{-# LANGUAGE DeriveDataTypeable, OverloadedStrings #-}
-module Gitolite where
+module Gitolite (module DataTypes, parseGitolite) where
 import Data.Git
 import System.Git
 import Data.Data
 import System.FilePath
-import Data.ByteString.Char8 hiding (tail, filter, concat, map, count)
-import Control.Exception
-import Data.Attoparsec.Char8
-import Control.Applicative
-import Prelude hiding (takeWhile)
+import Data.ByteString.Char8 hiding (filter, concat, map, count, empty)
+import Control.Exception hiding (try)
+import Text.Parsec
+import DataTypes
+import Data.Map hiding (map, filter, partition)
 import Data.List (partition)
+import Control.Applicative hiding ((<|>), many, empty)
+import Data.Either
 import Control.Monad
 
-data Repository = Repository { repoName        :: RepoName
-                             , repoPermissions :: [(Permission, [Member])]
-                             }
-                  deriving (Show, Eq, Ord, Typeable, Data)
+type GroupState = Map String [String]
+type Parser = Parsec ByteString GroupState
+data GLine = RepoLine [String] | PermissionLine Permission [UserName]
+             deriving (Show, Eq, Ord)
 
-data Member = UserMember  String
-            | GroupMember String
-              deriving (Data, Typeable, Show, Eq, Ord)
-
-type Refex = String
-
-data Permission = C      {refex :: [Refex]}
-                | R      {refex :: [Refex]}
-                | RW     {refex :: [Refex]}
-                | RWPlus {refex :: [Refex]}
-                | Minus  {refex :: [Refex]}
-                  deriving (Show, Eq, Ord, Data, Typeable)
-
-data User = User { userName     :: String
-                 , userPubKey   :: ByteString
-                 } deriving (Eq, Ord, Typeable, Data, Show)
-
-data Gitolite = Gitolite { admin :: Repository
-                         , repositories :: [Repository]
-                         , users :: [User]
-                         , groups :: [Group]
-                         } deriving (Show, Eq, Ord, Data, Typeable)
-
-data Group = Group { groupName   :: String
-                   , groupMember :: [UserName]
-                   } deriving (Show, Eq, Ord, Data, Typeable)
-
-data GitoliteException = GitError GitError
-                       | FileError String
-                       | ParseError String
-                       | ConfError String
-                         deriving (Show, Typeable)
-
-instance Exception GitoliteException
-
-type RepoName = String
-type UserName = String
+type GLineParser = Parsec [GLine] ()
 
 -- | parse Gitolite repository
 parseGitolite :: FilePath       -- ^ Path to gitolite repositories
@@ -64,17 +28,16 @@ parseGitolite path = do
   gobj <- gitPathToObj ("/conf" </> "gitolite.conf") adminDir
   case gobj of
     GoBlob _ src ->
-      case parseOnly (skipSpace *> gitoliteP <* skipSpace <* endOfInput) src of
+      case runParser (confParser <* eof) empty "gitolite.conf" src of
         Left err  -> throwIO $ ParseError err
-        Right (gs, rs) -> do
-          print (gs, rs)             
+        Right rs -> do
           let (ads, rest) = partition ((== "gitolite-admin") . repoName) rs
           case ads of
             []      -> throwIO $ ConfError "No settings about gitolite-admin"
             _:_:_   -> throwIO $ ConfError "Too many settings about gitolite-admin"
             [admin] -> do
               users <- getUsers path
-              return $ Gitolite { admin = admin, repositories = rest, users = users, groups =  gs}
+              return $ Gitolite { admin = admin, repositories = rest, users = users}
     _ -> throwIO $ FileError "gitolite.conf not found"
 
 getUsers :: FilePath -> IO [User]
@@ -93,58 +56,81 @@ getUsers path = do
     cond (GitTreeEntry (RegularFile _) name _) = takeExtension name == ".pub"
     cond _                                     = False
 
-gitoliteP :: Parser ([Group], [Repository])
-gitoliteP = do
-  (,) <$> groupP `sepBy` endOfLine
-      <*  skipMany endOfLine
-      <*> (concat <$> repoP `sepBy` many endOfLine)
+repoLine :: GLineParser [String]
+repoLine = tokenPrim show (const . const) cond
+    where
+      cond (RepoLine ss) = Just ss
+      cond _             = Nothing
 
-symbol :: ByteString -> Parser ByteString
-symbol str = string str <* skipSpace
+permLine :: GLineParser (Permission, [UserName])
+permLine = tokenPrim show (const . const) cond
+    where
+      cond (PermissionLine p us) = Just (p, us)
+      cond _                     = Nothing
 
-repoP :: Parser [Repository]
-repoP = do
-  skipSpace
-  string "repo"
-  skipSpace
-  repos <- repoIdent `sepBy1` space <* endOfLine
-  perms <- many (skipSpace *> permissionP)
-  return $ map (flip Repository perms) repos
+confParser :: Parser [Repository]
+confParser = do
+  ls <- rights  <$> (Left <$> groupDefP <|> Right <$> glineP)
+                          `sepEndBy1` (many1 newline)
+  pos <- getPosition
+  let ans = parse (setPosition pos >> lineParser) (sourceName pos) ls
+  case ans of
+    Left err -> fail $ show err
+    Right an -> return an
 
-permissionP :: Parser (Permission, [Member])
-permissionP = (,) <$ skipSpace
-                  <*> (levelP <* skipSpace <*> refexP `sepBy` space)
-                  <* skipSpace <* symbol "="
-                  <*> memberP `sepBy` space
-
-refexP :: Parser Refex
-refexP = concat <$> many1 refexToken
+lineParser :: GLineParser [Repository]
+lineParser = concat <$> many l
   where
-    refexToken = (:) <$> char '\\' <*> count 1 anyChar
-             <|> count 1 (satisfy (notInClass " \t\r\n="))
+    l = flip (map . (flip Repository)) <$> repoLine <*> many1 permLine
+
+glineP :: Parser GLine
+glineP = try repoLineP <|> permLineP
+
+groupP :: Parser [String]
+groupP = findWithDefault [] <$> groupNameP <*> getState
+
+groupDefP :: Parser ()
+groupDefP = do
+  name <- groupNameP <* skipSpace <* char '=' <* skipSpace
+  members <- (groupP <|> count 1 anyName) `sepEndBy1` skipSpace
+  modifyState $ insertWith (++) name $ concat members
+
+groupNameP :: Parser String
+groupNameP = char '@' *> identifier
+
+skipSpace :: Parser ()
+skipSpace = skipMany $ oneOf " \t"
+
+anyName :: Parser String
+anyName = concat <$>
+            (many1 $ (:) <$> char '\\' <*> count 1 anyChar
+                 <|> count 1 (noneOf " \t\r\n="))
+
+identifier, repoIdent :: Parser  String
+identifier = many1 alphaNum
+repoIdent = many1 (alphaNum <|> oneOf "-/")
+
+repoLineP :: Parser GLine
+repoLineP = do
+  skipSpace >> string "repo" >> skipSpace
+  RepoLine . concat <$> (groupP <|> count 1 repoIdent) `sepEndBy1` skipSpace
+
+permLineP :: Parser GLine
+permLineP = do
+  skipSpace
+  PermissionLine <$> (levelP <* skipSpace <*> anyName `sepEndBy` skipSpace)
+                 <*  char '=' <* skipSpace
+                 <*> membersP
 
 levelP :: Parser ([Refex] -> Permission)
-levelP = RWPlus <$ string "RW+"
-     <|> RW     <$ string "RW"
+levelP = RWPlus <$ try (string "RW+")
+     <|> RW     <$ try (string "RW")
      <|> R      <$ string "R"
      <|> Minus  <$ string "-"
      <|> C      <$ string "C"
 
-identifier, repoIdent :: Parser String
-identifier = unpack <$> takeWhile1 (inClass "-a-zA-Z0-9")
-repoIdent = unpack <$> takeWhile1 (inClass "-/a-zA-Z0-9")
-
-groupP :: Parser Group
-groupP = Group <$> (tail <$> groupNameP)
-               <*  skipSpace <* symbol "="
-               <*> userNameP `sepBy1` space
-
-memberP :: Parser Member
-memberP = GroupMember . tail <$> groupNameP
-      <|> UserMember  <$> userNameP
-
-groupNameP :: Parser String
-groupNameP = (:) <$> char '@' <*> identifier
-
 userNameP :: Parser String
 userNameP = identifier
+
+membersP :: Parser [String]
+membersP = concat <$> ((groupP <|> count 1 userNameP) `sepEndBy1` skipSpace)
