@@ -20,6 +20,10 @@ import Data.Text (Text)
 import Data.Yaml
 import Control.Applicative
 
+-- | The location of gitolite repositories.
+reposDir :: FilePath
+reposDir = "repositories"
+
 -- | The location of static files on your system. This is a file system
 -- path. The default value works properly with your scaffolded site.
 staticDir :: FilePath
