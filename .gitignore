@@ -1,0 +1,9 @@
+cabal-dev
+*.o
+*.hi
+.DS_Store
+dist
+deploy
+*~
+#*#
+static/tmp
