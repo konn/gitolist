@@ -28,6 +28,7 @@ data Permission = C      {refex :: [Refex]}
                 | R      {refex :: [Refex]}
                 | RW     {refex :: [Refex]}
                 | RWPlus {refex :: [Refex]}
+                | Minus  {refex :: [Refex]}
                   deriving (Show, Eq, Ord, Data, Typeable)
 
 data User = User { userName     :: String
@@ -112,18 +113,22 @@ repoP = do
 
 permissionP :: Parser (Permission, [Member])
 permissionP = (,) <$ skipSpace
-                  <*> levelP
+                  <*> (levelP <* skipSpace <*> refexP `sepBy` space)
                   <* skipSpace <* symbol "="
                   <*> memberP `sepBy` space
 
 refexP :: Parser Refex
-refexP = concat <$> many1 ((:) <$> char '\\' <*> count 1 anyChar <|> count 1 (satisfy (not.isSpace)))
+refexP = concat <$> many1 refexToken
+  where
+    refexToken = (:) <$> char '\\' <*> count 1 anyChar
+             <|> count 1 (satisfy (notInClass " \t\r\n="))
 
-levelP :: Parser Permission
-levelP = RWPlus <$ string "RW+" <*> many refexP
-     <|> RW     <$ string "RW"  <*> many refexP
-     <|> R      <$ string "R"   <*> many refexP
-     <|> C      <$ string "C"   <*> many refexP
+levelP :: Parser ([Refex] -> Permission)
+levelP = RWPlus <$ string "RW+"
+     <|> RW     <$ string "RW"
+     <|> R      <$ string "R"
+     <|> Minus  <$ string "-"
+     <|> C      <$ string "C"
 
 identifier, repoIdent :: Parser String
 identifier = unpack <$> takeWhile1 (inClass "-a-zA-Z0-9")
