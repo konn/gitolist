@@ -5,7 +5,7 @@ import Data.Git
 import System.Git
 import Data.Data
 import System.FilePath
-import Data.ByteString.Char8 hiding (tail, filter)
+import Data.ByteString.Char8 hiding (tail, filter, concat, map, count)
 import Control.Exception
 import Data.Attoparsec.Char8
 import Control.Applicative
@@ -13,8 +13,8 @@ import Prelude hiding (takeWhile)
 import Data.List (partition)
 import Control.Monad
 
-data Repository = Repository { repoName         :: RepoName
-                             , repoAccessLevels :: [(AccessLevel, [Member])]
+data Repository = Repository { repoName        :: RepoName
+                             , repoPermissions :: [(Permission, [Member])]
                              }
                   deriving (Show, Eq, Ord, Typeable, Data)
 
@@ -22,8 +22,13 @@ data Member = UserMember  String
             | GroupMember String
               deriving (Data, Typeable, Show, Eq, Ord)
 
-data AccessLevel = R | W | RW | RWPlus
-                   deriving (Show, Eq, Ord, Data, Typeable)
+type Refex = String
+
+data Permission = C      {refex :: [Refex]}
+                | R      {refex :: [Refex]}
+                | RW     {refex :: [Refex]}
+                | RWPlus {refex :: [Refex]}
+                  deriving (Show, Eq, Ord, Data, Typeable)
 
 data User = User { userName     :: String
                  , userPubKey   :: ByteString
@@ -91,26 +96,34 @@ gitoliteP :: Parser ([Group], [Repository])
 gitoliteP = do
   (,) <$> groupP `sepBy` endOfLine
       <*  skipMany endOfLine
-      <*> repoP `sepBy` many endOfLine
+      <*> (concat <$> repoP `sepBy` many endOfLine)
 
 symbol :: ByteString -> Parser ByteString
 symbol str = string str <* skipSpace
 
-repoP :: Parser Repository
-repoP = Repository <$ skipSpace <* string "repo" <* skipSpace
-                   <*> repoIdent <* endOfLine
-                   <*> many (skipSpace *> accesslevelP)
+repoP :: Parser [Repository]
+repoP = do
+  skipSpace
+  string "repo"
+  skipSpace
+  repos <- repoIdent `sepBy1` space <* endOfLine
+  perms <- many (skipSpace *> permissionP)
+  return $ map (flip Repository perms) repos
 
-accesslevelP :: Parser (AccessLevel, [Member])
-accesslevelP = (,) <$ skipSpace
-                   <*> accessLevelP
-                   <* skipSpace <* symbol "="
-                   <*> memberP `sepBy` space
+permissionP :: Parser (Permission, [Member])
+permissionP = (,) <$ skipSpace
+                  <*> levelP
+                  <* skipSpace <* symbol "="
+                  <*> memberP `sepBy` space
 
-accessLevelP :: Parser AccessLevel
-accessLevelP = RWPlus <$ string "RW+"
-           <|> RW     <$ string "RW"
-           <|> R      <$ string "R"
+refexP :: Parser Refex
+refexP = concat <$> many1 ((:) <$> char '\\' <*> count 1 anyChar <|> count 1 (satisfy (not.isSpace)))
+
+levelP :: Parser Permission
+levelP = RWPlus <$ string "RW+" <*> many refexP
+     <|> RW     <$ string "RW"  <*> many refexP
+     <|> R      <$ string "R"   <*> many refexP
+     <|> C      <$ string "C"   <*> many refexP
 
 identifier, repoIdent :: Parser String
 identifier = unpack <$> takeWhile1 (inClass "-a-zA-Z0-9")
