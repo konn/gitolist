@@ -12,9 +12,9 @@ import Data.List (intercalate)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
-import Control.Exception.Lifted (throwIO, evaluate, catch, SomeException(..))
+import Control.Exception.Lifted (throwIO)
 import Text.Blaze
-import Text.Blaze.XHtml1.Strict
+import Text.Blaze.XHtml1.Strict (pre)
 
 -- This is a handler function for the GET request method on the RootR
 -- resource pattern. All of your resource patterns are defined in
