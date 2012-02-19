@@ -45,8 +45,8 @@ getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
   unless (isBlob obj) $ notFound
   let langs      = languagesByExtension $ takeExtension $ last ps
       GoBlob _ b = obj
-  src <- evaluate (T.unpack $ T.decodeUtf8 b)
-    `catch` \(e :: SomeException) -> liftIO $ throwIO $ InternalError $ T.pack $ show e
+  src <- either (liftIO . throwIO . InternalError . T.pack . show) (return . T.unpack) $
+           T.decodeUtf8' b
   let curPath = treeLink repon op
       blob    = fromMaybe (pre $ toHtml src) $
                   highlight formatHtmlBlock ("", "number":langs, []) src
