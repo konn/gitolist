@@ -14,6 +14,7 @@ import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
 import Control.Exception.Lifted (throwIO, evaluate, catch, SomeException(..))
 import Text.Blaze
+import Text.Blaze.XHtml1.Strict
 
 -- This is a handler function for the GET request method on the RootR
 -- resource pattern. All of your resource patterns are defined in
@@ -47,7 +48,7 @@ getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
   src <- evaluate (T.unpack $ T.decodeUtf8 b)
     `catch` \(e :: SomeException) -> liftIO $ throwIO $ InternalError $ T.pack $ show e
   let curPath = treeLink repon op
-      blob    = fromMaybe (toHtml src) $
+      blob    = fromMaybe (pre $ toHtml src) $
                   highlight formatHtmlBlock ("", "number":langs, []) src
   defaultLayout $ do
     setTitle $ fromString $ repon ++ " - Gitolist"
