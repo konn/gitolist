@@ -6,10 +6,12 @@ module Application
 
 import Import
 import Settings (parseExtra)
+import qualified Settings
 import Settings.StaticFiles (staticSite)
 import Yesod.Default.Config
 import Yesod.Default.Main (defaultDevelApp)
 import Yesod.Default.Handlers (getFaviconR, getRobotsR)
+import Network.HTTP.Conduit (newManager, def)
 #if DEVELOPMENT
 import Yesod.Logger (Logger, logBS)
 import Network.Wai.Middleware.RequestLogger (logCallbackDev)
@@ -18,6 +20,7 @@ import Yesod.Logger (Logger, logBS, toProduction)
 import Network.Wai.Middleware.RequestLogger (logCallback)
 #endif
 import Network.Wai (Application)
+import qualified Database.Persist.Store
 
 -- Import all relevant handler modules here.
 import Handler.Root
@@ -34,8 +37,13 @@ mkYesodDispatch "Gitolist" resourcesGitolist
 -- migrations handled by Yesod.
 getApplication :: AppConfig DefaultEnv Extra -> Logger -> IO Application
 getApplication conf logger = do
+    manager <- newManager def
     s <- staticSite
-    let foundation = Gitolist conf setLogger s
+    dbconf <- withYamlEnvironment "config/mongoDB.yml" (appEnv conf)
+              Database.Persist.Store.loadConfig >>=
+              Database.Persist.Store.applyEnv
+    p <- Database.Persist.Store.createPoolConfig (dbconf :: Settings.PersistConfig)
+    let foundation = Gitolist conf setLogger s p manager dbconf
     app <- toWaiAppPlain foundation
     return $ logWare app
   where

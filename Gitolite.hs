@@ -124,11 +124,12 @@ permLineP = do
                  <*> membersP
 
 levelP :: Parser ([Refex] -> Permission)
-levelP = RWPlus <$ try (string "RW+")
-     <|> RW     <$ try (string "RW")
-     <|> R      <$ string "R"
-     <|> Minus  <$ string "-"
-     <|> C      <$ string "C"
+levelP = Deny   <$ string "-"
+     <|> Permission True <$  try (string "RW")
+                         <*> (option False (True <$ char '+'))
+                         <*> (option False (True <$ char 'C'))
+                         <*> (option False (True <$ char 'D'))
+     <|> Permission False False False False <$ char 'R'
 
 userNameP :: Parser String
 userNameP = identifier

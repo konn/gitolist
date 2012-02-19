@@ -1,0 +1,24 @@
+Default: &defaults
+  user: mock
+  password: mock
+  host: localhost
+  port: 27017
+  database: mock
+  poolsize: 10
+
+Development:
+  <<: *defaults
+
+Test:
+  database: mock_test
+  <<: *defaults
+
+Staging:
+  database: mock_staging
+  poolsize: 100
+  <<: *defaults
+
+Production:
+  database: mock_production
+  poolsize: 100
+  <<: *defaults

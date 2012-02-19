@@ -2,12 +2,9 @@ module Handler.Repos where
 
 import Import hiding (fileName)
 import Control.Monad
-import Data.List (intersperse)
-import Prelude
 import Data.Git
 import qualified Data.Text.Encoding as T
-import qualified Data.Text as T
-import System.Git
+-- import System.Git
 import qualified Data.ByteString as BS
 
 -- This is a handler function for the GET request method on the RootR

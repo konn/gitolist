@@ -1,7 +1,7 @@
 Default: &defaults
   host: "localhost"
   port: 3000
-  copyright: Insert copyright statement here
+  copyright: Copyright (C) 2012 Hiromi ISHII.
   #analytics: UA-YOURCODE
 
 Development:

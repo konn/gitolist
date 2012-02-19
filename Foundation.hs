@@ -3,6 +3,7 @@ module Foundation
     , Route (..)
     , GitolistMessage (..)
     , resourcesGitolist
+    , module Model
     , Handler
     , Widget
     , ObjPiece(..)
@@ -13,20 +14,31 @@ module Foundation
     ) where
 
 import Prelude
+import Yesod
 import Yesod.Core hiding (Route)
 import Yesod.Default.Config
 import Yesod.Default.Util (addStaticContentExternal)
 import Yesod.Static
+import Yesod.Persist
+import Yesod.Auth
+import Yesod.Auth.BrowserId
+import Yesod.Auth.GoogleEmail
 import Settings.StaticFiles
 import Yesod.Logger (Logger, logMsg, formatLogText)
 import qualified Settings
 import Settings (Extra (..), widgetFile, repositoriesPath)
 import Control.Monad.IO.Class (liftIO)
+import Network.HTTP.Conduit (Manager)
 import Web.ClientSession (getKey)
 import Text.Hamlet (hamletFile)
+import qualified Database.Persist.Store
+import Database.Persist.MongoDB
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+
+import Model
+
 
 -- | The site argument for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -36,6 +48,9 @@ data Gitolist = Gitolist
     { settings  :: AppConfig DefaultEnv Extra
     , getLogger :: Logger
     , getStatic :: Static -- ^ Settings for static file serving.
+    , connPool :: Database.Persist.Store.PersistConfigPool Settings.PersistConfig -- ^ Database connection pool.
+    , httpManager :: Manager
+    , persistConfig :: Settings.PersistConfig
     }
 
 instance PathPiece BS.ByteString where
@@ -76,6 +91,7 @@ mkMessage "Gitolist" "messages" "en"
 -- usually require access to the GitolistRoute datatype. Therefore, we
 -- split these actions into two functions and place them in separate files.
 mkYesodData "Gitolist" $(parseRoutesFile "config/routes")
+type Form x = Html -> MForm Gitolist Gitolist (FormResult x, Widget)
 
 -- Please see the documentation for the Yesod typeclass. There are a number
 -- of settings which can be configured by overriding methods here.
@@ -117,3 +133,35 @@ instance Yesod Gitolist where
 
     -- Enable Javascript async loading
     yepnopeJs _ = Just $ Right $ StaticR js_modernizr_js
+
+instance YesodPersist Gitolist where
+    type YesodPersistBackend Gitolist = Action
+    runDB f = do
+        master <- getYesod
+        Database.Persist.Store.runPool
+            (persistConfig master)
+            f
+            (connPool master)
+
+instance YesodAuth Gitolist where
+    type AuthId Gitolist = UserId
+
+    -- Where to send a user after successful login
+    loginDest _ = RootR
+    -- Where to send a user after logout
+    logoutDest _ = RootR
+
+    getAuthId creds = runDB $ do
+        x <- getBy $ UniqueUser $ T.unpack (credsIdent creds)
+        case x of
+            Just (Entity uid _) -> return $ Just uid
+            Nothing -> do
+                fmap Just $ insert $ User (T.unpack $ credsIdent creds) Nothing
+
+    -- You can add other plugins like BrowserID, email or OAuth here
+    authPlugins _ = [authBrowserId, authGoogleEmail]
+
+    authHttpManager = httpManager
+
+instance RenderMessage Gitolist FormMessage where
+    renderMessage _ _ = defaultFormMessage

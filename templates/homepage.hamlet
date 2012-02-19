@@ -1,4 +1,5 @@
 <h1>Gitolite Repositories
 <ul>
   $forall repo <- repos
-    <li> <a href=@{TreeR (repoName repo) (mkObjPiece "master")}> #{repoName repo}  #
+    <li>
+      <a href=@{TreeR (repoName repo) (mkObjPiece "master")}>#{repoName repo}

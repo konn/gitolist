@@ -9,10 +9,13 @@ module Settings
     , staticDir
     , Extra (..)
     , parseExtra
+    , PersistConfig
     , repositoriesPath
+    , guestName
     ) where
 
 import Prelude
+import Database.Persist.MongoDB (MongoConf)
 import Text.Shakespeare.Text (st)
 import Language.Haskell.TH.Syntax
 import Yesod.Default.Config
@@ -20,10 +23,17 @@ import qualified Yesod.Default.Util
 import Data.Text (Text)
 import Data.Yaml
 import Control.Applicative
+import qualified Gitolite
+
+type PersistConfig = MongoConf
 
 -- | The location of gitolite repositories.
 repositoriesPath :: FilePath
-repositoriesPath = "/path/to/gitolite/repositories"
+repositoriesPath = "/path/to/repositories"
+
+-- | The account's name used for guests
+guestName :: Gitolite.UserName
+guestName = "guest"
 
 -- | The location of static files on your system. This is a file system
 -- path. The default value works properly with your scaffolded site.

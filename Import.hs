@@ -12,23 +12,28 @@ module Import
     , withRepoObj
     , isBlob
     , isTree
+    , module Yesod.Auth
     , isRegularFile
     , isDirectory
     , renderPath
     ) where
 
+import Yesod.Auth
 import Prelude hiding (writeFile, readFile)
 import Foundation
 import Data.Monoid (Monoid (mappend, mempty, mconcat))
 import Control.Applicative ((<$>), (<*>), pure)
 import Data.Text (Text)
-import Gitolite
+import Gitolite hiding (User)
+import qualified Gitolite
 import qualified Data.Git as Git
 import qualified System.Git as Git
-import Control.Monad.IO.Class
 import qualified Data.ByteString.Char8 as BS
 import Data.List
+import qualified Settings
 import Data.Maybe
+import Database.Persist.Store
+import qualified Data.Text as T
 
 isBlob, isTree :: Git.GitObject -> Bool
 isBlob (Git.GoBlob _ _) = True
@@ -63,7 +68,13 @@ withRepo repon act = do
   let mrep = find ((== repon) . repoName) $ repositories git
   case mrep of
     Nothing -> notFound
-    Just repo -> act git repo
+    Just repo -> do
+      mu <- maybeAuth
+      let uName = maybe Settings.guestName (userIdent . entityVal) mu
+      if repo `isReadableFor` uName
+        then act git repo
+        else permissionDenied $ T.pack $
+               "You don't have permission for repository " ++ repon
 
 getGitolite :: Handler Gitolite
 getGitolite = liftIO $ parseGitolite repositoriesPath
