@@ -7,7 +7,6 @@ module Application
 import Import
 import Settings (parseExtra)
 import qualified Settings
-import Settings.StaticFiles (staticSite)
 import Yesod.Default.Config
 import Yesod.Default.Main (defaultDevelApp)
 import Yesod.Default.Handlers (getFaviconR, getRobotsR)

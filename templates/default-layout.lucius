@@ -1,3 +1,8 @@
 body {
     font-family: sans-serif;
 }
+
+p#desc {
+   font-size: small;
+   align: center;
+}

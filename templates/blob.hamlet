@@ -2,5 +2,4 @@
   <a href=@{TreeR repon (mkObjPiece "master")}>
     #{repon}
 <h3>^{curPath}
-<pre>
-  #{blob}
+#{blob}

@@ -1,7 +1,7 @@
 <h1>
   <a href=@{RootR}>
-    Gitolist
-  \ - A simple web frontend for Gitolite
+    <img src=@{StaticR img_logo_png}>
+<p #desc>A simple web frontend for Gitolite
 ^{widget}
 <footer>
     #{extraCopyright $ appExtra $ settings master}

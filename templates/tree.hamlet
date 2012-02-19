@@ -1,21 +1,25 @@
-<h2><a href=@{TreeR repon (mkObjPiece "master")}>#{repon}
-<h3>^{curPath}
-<p><table>
-  $forall ent <- entries
-    $if isRegularFile ent
-      <tr>
-        <td>
-          <img height="30px" width="30px" src=@{StaticR img_file_jpg}>
-        <td>
-          <a href=@{BlobR repon (mkP ent)}>#{fileName ent}
-    $elseif isDirectory ent
-      <tr>
-        <td>
-          <img height="30px" width="30px" src=@{StaticR img_dir_jpg}>
-        <td>
-          <a href=@{TreeR repon (mkP ent)}>#{fileName ent}
-    $else
-      <tr>
-        <td>
-        <td>
-          <a>#{fileName ent}
+<h2>
+  <a href=@{TreeR repon (mkObjPiece "master")}>
+    #{repon}
+<h3>
+  ^{curPath}
+<p>
+  <table>
+    $forall ent <- entries
+      $if isRegularFile ent
+        <tr>
+          <td>
+            <img height="30px" width="30px" src=@{StaticR img_file_jpg}>
+          <td>
+            <a href=@{BlobR repon (mkP ent)}>#{fileName ent}
+      $elseif isDirectory ent
+        <tr>
+          <td>
+            <img height="30px" width="30px" src=@{StaticR img_dir_jpg}>
+          <td>
+            <a href=@{TreeR repon (mkP ent)}>#{fileName ent}
+      $else
+        <tr>
+          <td>
+          <td>
+            <a>#{fileName ent}
