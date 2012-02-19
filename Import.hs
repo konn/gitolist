@@ -22,7 +22,7 @@ module Import
     ) where
 
 import Yesod.Auth
-import Prelude hiding (writeFile, readFile)
+import Prelude hiding (writeFile, readFile, catch)
 import Foundation
 import Yesod.Static
 import Data.Monoid (Monoid (mappend, mempty, mconcat))

@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Handler.Repos where
 
 import Import hiding (fileName)
@@ -11,7 +12,8 @@ import Data.List (intercalate)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
-import Control.Exception.Lifted (throwIO)
+import Control.Exception.Lifted (throwIO, evaluate, catch, SomeException(..))
+import Text.Blaze
 
 -- This is a handler function for the GET request method on the RootR
 -- resource pattern. All of your resource patterns are defined in
@@ -42,10 +44,11 @@ getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
   unless (isBlob obj) $ notFound
   let langs      = languagesByExtension $ takeExtension $ last ps
       GoBlob _ b = obj
-      src        = T.unpack $ T.decodeUtf8 b
-      curPath = treeLink repon op
-  blob <- maybe (liftIO $ throwIO $ InternalError "couldn't render file") return $
-            highlight formatHtmlBlock ("", "number":langs, []) src
+  src <- evaluate (T.unpack $ T.decodeUtf8 b)
+    `catch` \(e :: SomeException) -> liftIO $ throwIO $ InternalError $ T.pack $ show e
+  let curPath = treeLink repon op
+      blob    = fromMaybe (toHtml src) $
+                  highlight formatHtmlBlock ("", "number":langs, []) src
   defaultLayout $ do
     setTitle $ fromString $ repon ++ " - Gitolist"
     $(widgetFile "blob")
