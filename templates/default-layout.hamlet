@@ -1,5 +1,7 @@
-$maybe msg <- mmsg
-    <div #message>#{msg}
+<h1>
+  <a href=@{RootR}>
+    Gitolist
+  \ - A simple web frontend for Gitolite
 ^{widget}
 <footer>
     #{extraCopyright $ appExtra $ settings master}

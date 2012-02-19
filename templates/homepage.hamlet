@@ -1,5 +1,25 @@
-<h1>Gitolite Repositories
+<h2>Repositories
 <ul>
   $forall repo <- repos
     <li>
       <a href=@{TreeR (repoName repo) (mkObjPiece "master")}>#{repoName repo}
+
+<h2>Introduction
+<p>Gitolist is a simple web front end for #
+  <a href="http://sitaramc.github.com/gitolite/">Gitolite#
+  . The goals of this project is:
+<ul>
+  <li>Easy-to-setup
+  <li>Seamless Cooperation with Gitolite
+  <li>Flexible access level control (with gitolite)
+
+<h2>TODOs
+<ul>
+  <li>Support Markdown or some other markup langauge
+  <li>Browser for Branches / Commits / Tags
+  <li>History
+  <li>User login (via BASIC Auth or someghing)
+  <li>Collaboration feature with Twitter, FaceBook, ...
+  <li>Syntax Coloring
+  <li>Better Interfaces / design
+  <li>Support Big Conf

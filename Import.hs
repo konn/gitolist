@@ -7,6 +7,8 @@ module Import
     , module Control.Applicative
     , module Gitolite
     , module Data.Maybe
+    , module Settings.StaticFiles
+    , module Yesod.Static
     , getGitolite
     , withRepo
     , withRepoObj
@@ -16,11 +18,13 @@ module Import
     , isRegularFile
     , isDirectory
     , renderPath
+    , treeLink
     ) where
 
 import Yesod.Auth
 import Prelude hiding (writeFile, readFile)
 import Foundation
+import Yesod.Static
 import Data.Monoid (Monoid (mappend, mempty, mconcat))
 import Control.Applicative ((<$>), (<*>), pure)
 import Data.Text (Text)
@@ -31,6 +35,7 @@ import qualified System.Git as Git
 import qualified Data.ByteString.Char8 as BS
 import Data.List
 import qualified Settings
+import Settings.StaticFiles
 import Data.Maybe
 import Database.Persist.Store
 import qualified Data.Text as T
@@ -48,6 +53,22 @@ isRegularFile _ = False
 isDirectory :: Git.GitTreeEntry -> Bool
 isDirectory (Git.GitTreeEntry Git.Directory _ _) = True
 isDirectory _             = False
+
+treeLink :: String -> ObjPiece -> Widget
+treeLink repon (ObjPiece c as) =
+  let ents = if null as then [[]] else init $ inits as
+  in [whamlet|
+       $forall e <- ents
+         \ / #
+         <a href=@{TreeR repon (ObjPiece c e)}>
+           $if null e
+             #{c}
+           $else
+             #{last e}
+       $if (not (null as))
+         $if (not (null as))
+           \ / #{last as}
+     |]
 
 withRepoObj :: String
             -> ObjPiece
