@@ -20,15 +20,17 @@ data GLine = RepoLine [String] | PermissionLine Permission [UserName]
 
 type GLineParser = Parsec [GLine] ()
 
+
 -- | parse Gitolite repository
 parseGitolite :: FilePath       -- ^ Path to gitolite repositories
               -> IO Gitolite    -- ^ Gitolite repos
 parseGitolite path = do
   let adminDir = path </> "gitolite-admin.git"
   gobj <- gitPathToObj ("/conf" </> "gitolite.conf") adminDir
+  users <- getUsers path
   case gobj of
     GoBlob _ src ->
-      case runParser (confParser <* eof) empty "gitolite.conf" src of
+      case runParser (confParser <* eof) (fromList [("all", map userName users)]) "gitolite.conf" src of
         Left err  -> throwIO $ ParseError err
         Right rs -> do
           let (ads, rest) = partition ((== "gitolite-admin") . repoName) rs
@@ -36,8 +38,7 @@ parseGitolite path = do
             []      -> throwIO $ ConfError "No settings about gitolite-admin"
             _:_:_   -> throwIO $ ConfError "Too many settings about gitolite-admin"
             [admin] -> do
-              users <- getUsers path
-              return $ Gitolite { admin = admin, repositories = rest, users = users}
+              return $ Gitolite { gitolitePath = path, admin = admin, repositories = rest, users = users}
     _ -> throwIO $ FileError "gitolite.conf not found"
 
 getUsers :: FilePath -> IO [User]
