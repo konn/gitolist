@@ -1,0 +1,6 @@
+<h1>Tags of#{curPath}
+<ul>
+  $forall c <- commits
+    <li>
+      <a href=@{CommitR (commitRef c)}>#{commitLog c} #
+      - #{commitRef c} by #{commitAuthor c}

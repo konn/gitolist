@@ -1,0 +1,12 @@
+<h1>#{curPath}
+<ul>
+  $forall ent <- entries
+    $if isRegularFile ent
+      <li>
+        <a href=@{BlobR repon (mkP ent)}>#{fileName ent}
+    $elseif isDirectory ent
+      <li>
+        <a href=@{TreeR repon (mkP ent)}>#{fileName ent}
+    $else
+      <li>
+        <a>#{fileName ent}

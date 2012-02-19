@@ -1,7 +1,6 @@
 module Gitolite (module DataTypes, parseGitolite) where
 import Data.Git
 import System.Git
-import Data.Data
 import System.FilePath
 import Data.ByteString.Char8 hiding (filter, concat, map, count, empty)
 import Control.Exception hiding (try)
@@ -12,6 +11,7 @@ import Data.List (partition)
 import Control.Applicative hiding ((<|>), many, empty)
 import Data.Either
 import Control.Monad
+import Prelude
 
 type GroupState = Map String [String]
 type Parser = Parsec ByteString GroupState
@@ -27,10 +27,10 @@ parseGitolite :: FilePath       -- ^ Path to gitolite repositories
 parseGitolite path = do
   let adminDir = path </> "gitolite-admin.git"
   gobj <- gitPathToObj ("/conf" </> "gitolite.conf") adminDir
-  users <- getUsers path
+  us <- getUsers path
   case gobj of
     GoBlob _ src ->
-      case runParser (confParser <* eof) (fromList [("all", map userName users)]) "gitolite.conf" src of
+      case runParser (confParser <* eof) (fromList [("all", map userName us)]) "gitolite.conf" src of
         Left err  -> throwIO $ ParseError err
         Right rs -> do
           let (ads, rest) = partition ((== "gitolite-admin") . repoName) rs
@@ -38,7 +38,7 @@ parseGitolite path = do
             []      -> throwIO $ ConfError "No settings about gitolite-admin"
             _:_:_   -> throwIO $ ConfError "Too many settings about gitolite-admin"
             [admin] -> do
-              return $ Gitolite { gitolitePath = path, admin = admin, repositories = rest, users = users}
+              return $ Gitolite { gitolitePath = path, admin = admin, repositories = rest, users = us}
     _ -> throwIO $ FileError "gitolite.conf not found"
 
 getUsers :: FilePath -> IO [User]

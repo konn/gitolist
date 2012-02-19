@@ -5,9 +5,11 @@ module Foundation
     , resourcesGitolist
     , Handler
     , Widget
+    , ObjPiece(..)
     , module Yesod.Core
     , module Settings
     , liftIO
+    , mkObjPiece
     ) where
 
 import Prelude
@@ -18,10 +20,13 @@ import Yesod.Static
 import Settings.StaticFiles
 import Yesod.Logger (Logger, logMsg, formatLogText)
 import qualified Settings
-import Settings (Extra (..), widgetFile)
+import Settings (Extra (..), widgetFile, repositoriesPath)
 import Control.Monad.IO.Class (liftIO)
 import Web.ClientSession (getKey)
 import Text.Hamlet (hamletFile)
+import qualified Data.ByteString as BS
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 
 -- | The site argument for your application. This can be a good place to
 -- keep settings and values requiring initialization before your application
@@ -32,6 +37,21 @@ data Gitolist = Gitolist
     , getLogger :: Logger
     , getStatic :: Static -- ^ Settings for static file serving.
     }
+
+instance PathPiece BS.ByteString where
+  toPathPiece bs = T.decodeUtf8 bs
+  fromPathPiece t = Just $ T.encodeUtf8 t
+
+data ObjPiece = ObjPiece String [FilePath]
+                deriving (Show, Eq, Ord, Read)
+
+mkObjPiece :: String -> ObjPiece
+mkObjPiece = flip ObjPiece []
+
+instance PathMultiPiece ObjPiece where
+  toPathMultiPiece (ObjPiece ref paths) = map T.pack (ref:paths)
+  fromPathMultiPiece (x:xs) = Just $ ObjPiece (T.unpack x) (map T.unpack xs)
+  fromPathMultiPiece _      = Nothing
 
 -- Set up i18n messages. See the message folder.
 mkMessage "Gitolist" "messages" "en"

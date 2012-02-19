@@ -1,2 +1,4 @@
-<h1>_{MsgHello}
-<h2 ##{h2id}>You do not have Javascript enabled.
+<h1>Gitolite Repositories
+<ul>
+  $forall repo <- repos
+    <li> <a href=@{TreeR (repoName repo) (mkObjPiece "master")}> #{repoName repo}  #

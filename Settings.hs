@@ -9,6 +9,7 @@ module Settings
     , staticDir
     , Extra (..)
     , parseExtra
+    , repositoriesPath
     ) where
 
 import Prelude
@@ -21,8 +22,8 @@ import Data.Yaml
 import Control.Applicative
 
 -- | The location of gitolite repositories.
-reposDir :: FilePath
-reposDir = "repositories"
+repositoriesPath :: FilePath
+repositoriesPath = "/path/to/gitolite/repositories"
 
 -- | The location of static files on your system. This is a file system
 -- path. The default value works properly with your scaffolded site.

@@ -6,6 +6,7 @@ import System.Git
 import Data.ByteString.Char8 (ByteString)
 import Text.Parsec
 import System.FilePath
+import Prelude
 
 data Repository = Repository { repoName        :: RepoName
                              , repoPermissions :: [(Permission, [UserName])]

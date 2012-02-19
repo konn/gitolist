@@ -3,5 +3,9 @@
 /favicon.ico FaviconR GET
 /robots.txt RobotsR GET
 
+/repo/#String/tree/*ObjPiece TreeR GET
+/repo/#String/blob/*ObjPiece BlobR GET
+/repo/#String/tags                 TagsR GET
+/repo/#String/commits/*ObjPiece     CommitsR GET
+/repo/#String/commit/#BS.ByteString       CommitR GET
 / RootR GET
-

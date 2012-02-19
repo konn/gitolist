@@ -11,7 +11,9 @@ import Import
 -- inclined, or create a single monolithic file.
 getRootR :: Handler RepHtml
 getRootR = do
-    defaultLayout $ do
-        h2id <- lift newIdent
-        setTitle "gitolist homepage"
-        $(widgetFile "homepage")
+  git  <- getGitolite
+  defaultLayout $ do
+    let repos = repositories git
+    setTitle "Gitolite Repositories"
+    $(widgetFile "homepage")
+
