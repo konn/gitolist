@@ -8,37 +8,38 @@ module Import
     , module Gitolite
     , module Data.Maybe
     , module Settings.StaticFiles
-    , module Yesod.Static
     , getGitolite
     , withRepo
     , withRepoObj
     , isBlob
     , isTree
     , module Yesod.Auth
+    , module ContentTypes
     , isRegularFile
     , isDirectory
     , renderPath
     , treeLink
+    , module Encodings
     ) where
 
-import Yesod.Auth
+import Yesod.Auth hiding (Route)
 import Prelude hiding (writeFile, readFile, catch)
 import Foundation
-import Yesod.Static
 import Data.Monoid (Monoid (mappend, mempty, mconcat))
 import Control.Applicative ((<$>), (<*>), pure)
 import Data.Text (Text)
 import Gitolite hiding (User)
-import qualified Gitolite
 import qualified Data.Git as Git
 import qualified System.Git as Git
 import qualified Data.ByteString.Char8 as BS
 import Data.List
 import qualified Settings
 import Settings.StaticFiles
-import Data.Maybe
+import Data.Maybe (fromMaybe, listToMaybe)
 import Database.Persist.Store
 import qualified Data.Text as T
+import Encodings
+import ContentTypes
 
 isBlob, isTree :: Git.GitObject -> Bool
 isBlob (Git.GoBlob _ _) = True
