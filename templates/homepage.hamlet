@@ -15,11 +15,11 @@
 
 <h2>TODOs
 <ul>
-  <li>Support Markdown or some other markup langauge
+  <li>Add extension to tarball
   <li>Browser for Branches / Commits / Tags
   <li>History
+  <li>Provide url to clone repo thru ssh or https
   <li>User login (via BASIC Auth or someghing)
   <li>Collaboration feature with Twitter, FaceBook, ...
-  <li>Syntax Coloring
   <li>Better Interfaces / design
   <li>Support Big Conf
