@@ -23,3 +23,9 @@
           <td>
           <td>
             <a>#{fileName ent}
+
+$maybe rm <- readme
+  <h3>
+    README
+  <article>
+    #{rm}

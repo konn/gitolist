@@ -10,14 +10,21 @@ import Text.Pandoc.Highlighting
 import qualified Text.Highlighting.Kate as Kate
 import Data.String
 import System.FilePath
-import Data.List (intercalate)
+import Data.List (intercalate, find)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
 import Text.Blaze
+import Data.Char (toUpper)
 import Blaze.ByteString.Builder
-import Text.Blaze.XHtml1.Strict hiding (b)
+import Text.Blaze.XHtml1.Strict hiding (b, map)
 import Text.Blaze.XHtml1.Strict.Attributes (href, class_)
+
+fromBlob :: GitObject -> Maybe String
+fromBlob (GoBlob _ bs) = maybe (either (const Nothing) Just $ T.unpack <$> T.decodeUtf8' bs)
+                           (Just . flip decode bs) $
+                           detectEncoding bs
+fromBlob _             = Nothing
 
 getTreeR :: String -> ObjPiece -> Handler RepHtml
 getTreeR repon op@(ObjPiece com xs) = withRepoObj repon op $ \git repo obj -> do
@@ -25,6 +32,18 @@ getTreeR repon op@(ObjPiece com xs) = withRepoObj repon op $ \git repo obj -> do
   let GoTree _ es = obj
       curPath = treeLink repon op
       mkP pth = ObjPiece com (xs ++ [fileName pth])
+      mReadme = find ((=="README") . map toUpper . dropExtension . fileName) es
+  readme <-
+    case mReadme of
+      Just (GitTreeEntry (RegularFile _) fname ref) -> do
+        o <- liftIO $ sha1ToObj ref (repoDir git repo)
+        case fromBlob o of
+          Just src -> do
+            let ext    = takeExtension fname
+                reader = fromMaybe (readMarkdown defaultParserState) $ lookup ext pandocDic
+            return $ Just $ writeHtml defaultWriterOptions $ reader  src
+          _ -> return Nothing
+      _ -> return Nothing
   entries <-
     if null xs
       then return es
@@ -49,27 +68,24 @@ pandocDic = [(".xhtml", readHtml defaultParserState)
 getBlobR :: String -> ObjPiece -> Handler RepHtml
 getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
   unless (isBlob obj) $ notFound
-  render <- getUrlRender
+  renderUrl <- getUrlRender
   let curPath = treeLink repon op
-      GoBlob _ b = obj
-      eSrc       = maybe (T.unpack <$> T.decodeUtf8' b) (Right . flip decode b) $
-                     detectEncoding b
       ext   = takeExtension $ last ps
       langs = languagesByExtension ext
       blob =
-        case eSrc of
-          Right src ->
+        case fromBlob obj of
+          Just src ->
             case lookup ext pandocDic of
               Just reader -> writeHtml defaultWriterOptions $ reader src
               _ -> myHighlight (Kate.languagesByFilename $ last ps) src
-          Left _ ->
+          _ ->
             table ! class_ "sourceCode" $
               tr ! class_ "sourceCode" $
                 mconcat
                   [ td ! class_ "lineNumbers" $ pre " "
                   , td ! class_ "sourceCode" $ pre $
                        code ! class_ "sourceCode plain" $
-                          a ! href (toValue $ render $ RawBlobR repon op) $ "see raw file"
+                          a ! href (toValue $ renderUrl $ RawBlobR repon op) $ "see raw file"
                   ]
   defaultLayout $ do
     setTitle $ fromString $ repon ++ " - Gitolist"

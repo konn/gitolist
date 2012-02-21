@@ -9,11 +9,11 @@ Gitolist is a simple web front end for Gitolite. The goals of this project is:
 
 ## TODOs
 
-* Support Markdown or some other markup langauge
+* Download via zip or gzip
 * Browser for Branches / Commits / Tags
 * History
+* Provide url to clone repo thru ssh or https
 * User login (via BASIC Auth or someghing)
 * Collaboration feature with Twitter, FaceBook, ...
-* Syntax Coloring
 * Better Interfaces / design
 * Support Big Conf
