@@ -32,16 +32,21 @@ type Commit = GitPath
 gitPathToTarEntry :: Gitolite -> Repository -> GitPath -> IO [Tar.Entry]
 gitPathToTarEntry git repo path = runner path
   where
+    root = case splitDirectories path of
+             []    -> "HEAD"
+             "/":_ -> "HEAD"
+             s:_   -> s
     dir  = repoDir git repo
-    base = dir </> path
+    base = path
+    rootPath = concat [repoName repo, "-", root]
     runner p = do
       obj <- gitPathToObj p dir
       case obj of
         GoBlob size src -> do
-          let Right tPath = Tar.toTarPath False (makeRelative base p)
+          let Right tPath = Tar.toTarPath False (rootPath </> makeRelative base p)
           return [Tar.fileEntry tPath $ LBS.fromChunks [src]]
         GoTree _ es -> do
-          let Right tPath = Tar.toTarPath True (makeRelative base p)
+          let Right tPath = Tar.toTarPath True (rootPath </> makeRelative base p)
           (Tar.directoryEntry tPath : ) . concat <$>
             mapM (runner . (p </>) . fileName) es
 

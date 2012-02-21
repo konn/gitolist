@@ -15,7 +15,6 @@
 
 <h2>TODOs
 <ul>
-  <li>Add extension to tarball
   <li>Browser for Branches / Commits / Tags
   <li>History
   <li>Provide url to clone repo thru ssh or https

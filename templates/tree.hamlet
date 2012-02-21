@@ -4,7 +4,7 @@
 <h3>
   ^{curPath}
 <p>
-  <a href=@{CompressR repon op}>
+  <a href=@{CompressR repon (mkObjPiece com)}>
     Get Tarball
   <table>
     $forall ent <- entries

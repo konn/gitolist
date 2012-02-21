@@ -64,7 +64,6 @@ pandocDic = [(".xhtml", readHtml defaultParserState)
             ,(".html", readHtml defaultParserState)
             ,(".htm", readHtml defaultParserState)
             ,(".rst", readRST defaultParserState)
-            ,(".txt", readNative)
             ,(".textile", readTextile defaultParserState)
             ,(".md", readMarkdown defaultParserState)
             ,(".markdown", readMarkdown defaultParserState)
@@ -130,5 +129,7 @@ getCommitR = undefined
 getCompressR :: String -> ObjPiece -> Handler RepTarball
 getCompressR repon (ObjPiece c path) = withRepo repon $ \git repo -> do
   tar <- liftIO $ tarGitPath git repo (joinPath $ c:path)
+  setHeader "Content-Disposition" $
+    T.concat ["attachment; finename=\"", T.pack (repon ++ "-" ++ c), ".tar.gz\""]
   return $ RepTarball $ ContentSource $
              LC.sourceList (LBS.toChunks tar) $= gzip $= LC.map (Chunk . fromByteString)
