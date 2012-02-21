@@ -9,4 +9,5 @@
 /repo/#String/tags                 TagsR GET
 /repo/#String/commits/*ObjPiece     CommitsR GET
 /repo/#String/commit/#BS.ByteString       CommitR GET
+/repo/#String/compress/*ObjPiece   CompressR GET
 / RootR GET

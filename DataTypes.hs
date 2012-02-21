@@ -8,6 +8,12 @@ import Text.Parsec
 import System.FilePath
 import Prelude
 import Data.Monoid
+import qualified Codec.Archive.Tar as Tar
+import qualified Codec.Archive.Tar.Entry as Tar
+import qualified Codec.Archive.Zip as Zip
+import Data.Git
+import qualified Data.ByteString.Lazy as LBS
+import Control.Applicative
 
 data Repository = Repository { repoName        :: RepoName
                              , repoPermissions :: [(Permission, [UserName])]
@@ -20,6 +26,27 @@ repoDir git repo = gitolitePath git </> repoName repo ++ ".git"
 permissionForUser :: UserName -> Repository -> [Permission]
 permissionForUser uName repo =
     map fst $ filter ((uName `elem`).snd) $ repoPermissions repo
+
+type Commit = GitPath
+
+gitPathToTarEntry :: Gitolite -> Repository -> GitPath -> IO [Tar.Entry]
+gitPathToTarEntry git repo path = runner path
+  where
+    dir  = repoDir git repo
+    base = dir </> path
+    runner p = do
+      obj <- gitPathToObj p dir
+      case obj of
+        GoBlob size src -> do
+          let Right tPath = Tar.toTarPath False (makeRelative base p)
+          return [Tar.fileEntry tPath $ LBS.fromChunks [src]]
+        GoTree _ es -> do
+          let Right tPath = Tar.toTarPath True (makeRelative base p)
+          (Tar.directoryEntry tPath : ) . concat <$>
+            mapM (runner . (p </>) . fileName) es
+
+tarGitPath :: Gitolite -> Repository -> GitPath -> IO LBS.ByteString
+tarGitPath git repo path = Tar.write <$> gitPathToTarEntry git repo path
 
 type Refex = String
 

@@ -1,7 +1,7 @@
 {-# LANGUAGE ScopedTypeVariables, PatternGuards #-}
 module Handler.Repos where
 
-import Import hiding (fileName)
+import Import hiding (fileName, joinPath)
 import Control.Monad
 import Data.Git
 import System.Git
@@ -14,11 +14,16 @@ import Data.List (intercalate, find)
 import qualified Data.Text.Encoding as T
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy as LBS
 import Text.Blaze
 import Data.Char (toUpper)
 import Blaze.ByteString.Builder
 import Text.Blaze.XHtml1.Strict hiding (b, map)
+import qualified Text.Blaze.XHtml1.Strict.Attributes as B
 import Text.Blaze.XHtml1.Strict.Attributes (href, class_)
+import Data.Conduit
+import qualified Data.Conduit.List as LC
+import Data.Conduit.Zlib
 
 fromBlob :: GitObject -> Maybe String
 fromBlob (GoBlob _ bs) = maybe (either (const Nothing) Just $ T.unpack <$> T.decodeUtf8' bs)
@@ -65,6 +70,9 @@ pandocDic = [(".xhtml", readHtml defaultParserState)
             ,(".markdown", readMarkdown defaultParserState)
             ]
 
+isImage :: String -> Bool
+isImage = (`elem` [".jpg", ".jpeg", ".png", ".gif"])
+
 getBlobR :: String -> ObjPiece -> Handler RepHtml
 getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
   unless (isBlob obj) $ notFound
@@ -73,7 +81,9 @@ getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
       ext   = takeExtension $ last ps
       langs = languagesByExtension ext
       blob =
-        case fromBlob obj of
+        if isImage ext
+        then p $ img ! B.src (toValue $ renderUrl $ RawBlobR repon op)
+        else case fromBlob obj of
           Just src ->
             case lookup ext pandocDic of
               Just reader -> writeHtml defaultWriterOptions $ reader src
@@ -116,3 +126,9 @@ getCommitsR = undefined
 
 getCommitR :: String -> BS.ByteString -> Handler RepHtml
 getCommitR = undefined
+
+getCompressR :: String -> ObjPiece -> Handler RepTarball
+getCompressR repon (ObjPiece c path) = withRepo repon $ \git repo -> do
+  tar <- liftIO $ tarGitPath git repo (joinPath $ c:path)
+  return $ RepTarball $ ContentSource $
+             LC.sourceList (LBS.toChunks tar) $= gzip $= LC.map (Chunk . fromByteString)
