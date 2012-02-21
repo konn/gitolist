@@ -1,11 +1,15 @@
-{-# OPTIONS_GHC -fwarn-unused-imports #-}
+{-# LANGUAGE CPP #-}
 module Encodings ( encode, decode, TextEncoding
                  , mkTextEncoding, localeEncoding
                  , detectEncoding
                  ) where
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as LBS
+#ifdef charsetdetect
 import qualified Codec.Text.Detect as D
+#else
+import qualified Detect as D
+#endif
 import qualified GHC.IO.Encoding as E
 import GHC.IO.Encoding hiding (encode)
 import GHC.IO.Buffer
@@ -17,9 +21,13 @@ import Control.Exception
 import System.IO.Unsafe
 import Foreign.Marshal.Array
 import Prelude
-  
+
 detectEncoding :: BS.ByteString -> Maybe TextEncoding
+#ifdef charsetdetect
 detectEncoding bs = unsafePerformIO $ D.detectEncoding $ LBS.fromChunks [bs]
+#else
+detectEncoding bs = unsafePerformIO $ D.detectEncoding bs
+#endif
 
 bufToBS :: Buffer Word8 -> IO BS.ByteString
 bufToBS b@(Buffer raw _ c l r) = withBuffer b $ \ptr -> do

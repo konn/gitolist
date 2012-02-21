@@ -20,6 +20,10 @@ Flag library-only
     Description:   Build for use with "yesod devel"
     Default:       False
 
+Flag charsetdetect
+    Description:   Use `charsetdetect' package to detect charset.
+    Default:       False
+
 library
     if flag(library-only)
         Buildable: True
@@ -58,7 +62,13 @@ executable         gitolist
         cpp-options:   -DDEVELOPMENT
         ghc-options:   -Wall -threaded -O0
     else
-        ghc-options:   -Wall -threaded -O2 --make
+        ghc-options:   -Wall -threaded -O2
+
+    if flag(charsetdetect)
+        cpp-options:   -Dcharsetdetect
+        build-depends: charsetdetect             >= 1.0        && < 1.1
+    else
+        build-depends: attoparsec                >= 0.10       && < 0.11
 
     main-is:       main.hs
 
@@ -89,7 +99,6 @@ executable         gitolist
                  , bytestring                    >= 0.9        && < 0.10
                  , text                          >= 0.11       && < 0.12
                  , template-haskell
-                 , charsetdetect                 >= 1.0        && < 1.1
                  , pandoc                        >= 1.9        && < 2.0
                  , tar                           >= 0.4        && < 0.5
                  , zip-archive                   >= 0.1        && < 0.2
