@@ -1,5 +1,10 @@
 <h2>
-  <a href=@{TreeR repon (mkObjPiece "master")}>
-    #{repon}
+  <a href=@{TreeR repon (mkObjPiece c)}>
+    #{repon} #
+  <a href=@{RawBlobR repon (ObjPiece c ps)}>
+    Raw File
+<p>
+  <a href=@{CompressR repon (mkObjPiece c)}>
+    Get Tarball
 <h3>^{curPath}
 #{blob}
