@@ -5,7 +5,7 @@
 <h2>
   <a href=@{TreeR repon $ mkObjPiece commit}>
     #{repon}
-  \
+<p>
   <a href=@{TagsR repon}>
     Tags
   \ 

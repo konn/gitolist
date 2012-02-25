@@ -161,12 +161,11 @@ gitTags dir = do
     case objs of
       GoCommit _ c -> do
         let comm = gitComToCommit c
-            (tagger, tagDate)  = naiveSplitDate $ committer comm
         return $ Tag { tagRef     = commitRef comm
                      , tagName    = makeRelative tagsPath fpath
-                     , tagger     = tagger
+                     , tagger     = committer comm
                      , tagMessage = commitLog comm
-                     , tagDate    = tagDate
+                     , tagDate    = commitDate comm
                      }
       GoTag _ (Git.GitTag ref typ name tgr lg) -> do
         let (tagger, tagDate) = naiveSplitDate $ T.unpack $ T.decodeUtf8 tgr

@@ -9,7 +9,7 @@ Gitolist is a simple web front end for Gitolite. The goals of this project is:
 
 ## TODOs
 
-* Browser for Branches / Commits / Tags
+* Browser for Branches and individual commits.
 * History
 * Provide url to clone repo thru ssh or https
 * User login (via BASIC Auth or someghing)
