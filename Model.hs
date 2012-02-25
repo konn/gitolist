@@ -6,7 +6,7 @@ import Data.Text (Text)
 import Database.Persist.Quasi
 import Database.Persist.MongoDB
 import Language.Haskell.TH.Syntax
-import DataTypes (UserName)
+import GitUtils (UserName)
 
 -- You can define all of your database entities in the entities file.
 -- You can find more information on persistent and how to declare entities

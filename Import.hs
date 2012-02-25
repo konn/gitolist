@@ -55,22 +55,6 @@ isDirectory :: Git.GitTreeEntry -> Bool
 isDirectory (Git.GitTreeEntry Git.Directory _ _) = True
 isDirectory _             = False
 
-treeLink :: String -> ObjPiece -> Widget
-treeLink repon (ObjPiece c as) =
-  let ents = if null as then [[]] else init $ inits as
-  in [whamlet|
-       $forall e <- ents
-         \ / #
-         <a href=@{TreeR repon (ObjPiece c e)}>
-           $if null e
-             #{c}
-           $else
-             #{last e}
-       $if (not (null as))
-         $if (not (null as))
-           \ / #{last as}
-     |]
-
 withRepoObj :: String
             -> ObjPiece
             -> (Gitolite -> Repository -> Git.GitObject -> Handler a)

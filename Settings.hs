@@ -12,6 +12,7 @@ module Settings
     , PersistConfig
     , repositoriesPath
     , guestName
+    , codeStyle
     ) where
 
 import Prelude
@@ -23,13 +24,17 @@ import qualified Yesod.Default.Util
 import Data.Text (Text)
 import Data.Yaml
 import Control.Applicative
+import Text.Pandoc.Highlighting
 import qualified Gitolite
 
 type PersistConfig = MongoConf
 
 -- | The location of gitolite repositories.
 repositoriesPath :: FilePath
-repositoriesPath = "/path/to/repositories"
+repositoriesPath = "/Users/hiromi/konn-git/repositories"
+
+codeStyle :: Style
+codeStyle = espresso
 
 -- | The account's name used for guests
 guestName :: Gitolite.UserName

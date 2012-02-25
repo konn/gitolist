@@ -1,11 +1,11 @@
-module Gitolite (module DataTypes, parseGitolite) where
+module Gitolite (module GitUtils, parseGitolite) where
 import Data.Git
 import System.Git
 import System.FilePath
 import Data.ByteString.Char8 hiding (filter, concat, map, count, empty)
 import Control.Exception hiding (try)
 import Text.Parsec
-import DataTypes
+import GitUtils
 import Data.Map hiding (map, filter, partition)
 import Data.List (partition)
 import Control.Applicative hiding ((<|>), many, empty)

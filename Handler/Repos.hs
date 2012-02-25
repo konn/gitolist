@@ -24,6 +24,7 @@ import Text.Blaze.XHtml1.Strict.Attributes (href, class_)
 import Data.Conduit
 import qualified Data.Conduit.List as LC
 import Data.Conduit.Zlib
+import Text.Hamlet (hamletFile)
 
 fromBlob :: GitObject -> Maybe String
 fromBlob (GoBlob _ bs) = maybe (either (const Nothing) Just $ T.unpack <$> T.decodeUtf8' bs)
@@ -35,7 +36,6 @@ getTreeR :: String -> ObjPiece -> Handler RepHtml
 getTreeR repon op@(ObjPiece com xs) = withRepoObj repon op $ \git repo obj -> do
   unless (isTree obj) $ notFound
   let GoTree _ es = obj
-      curPath = treeLink repon op
       mkP pth = ObjPiece com (xs ++ [fileName pth])
       mReadme = find ((=="README") . map toUpper . dropExtension . fileName) es
   readme <-
@@ -55,7 +55,7 @@ getTreeR repon op@(ObjPiece com xs) = withRepoObj repon op $ \git repo obj -> do
       else do
         sha1 <- liftIO $ gitPathToSha1 (intercalate "/" $ com:init xs) (repoDir git repo)
         return $ GitTreeEntry Directory  ".." sha1 : es
-  defaultLayout $ do
+  repoLayout repon op $ do
     setTitle $ fromString $ repon ++ " - Gitolist"
     $(widgetFile "tree")
 
@@ -76,8 +76,7 @@ getBlobR :: String -> ObjPiece -> Handler RepHtml
 getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
   unless (isBlob obj) $ notFound
   renderUrl <- getUrlRender
-  let curPath = treeLink repon op
-      ext   = takeExtension $ last ps
+  let ext   = takeExtension $ last ps
       langs = languagesByExtension ext
       blob =
         if isImage ext
@@ -96,7 +95,7 @@ getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
                        code ! class_ "sourceCode plain" $
                           a ! href (toValue $ renderUrl $ RawBlobR repon op) $ "see raw file"
                   ]
-  defaultLayout $ do
+  repoLayout repon op $ do
     setTitle $ fromString $ repon ++ " - Gitolist"
     $(widgetFile "blob")
       
@@ -106,7 +105,6 @@ getRawBlobR repon op@(ObjPiece _ ps) = withRepoObj repon op $ \_ _ obj -> do
   let GoBlob _ b = obj
       ctype      = fromMaybe "text/plain" $ lookup (takeExtension $ last ps) ctypeDic
   return (ctype, ContentBuilder (fromByteString b) (Just $ BS.length b))
-  
 
 myHighlight :: [String] -> String -> Html
 myHighlight langs rawCode =
@@ -115,13 +113,17 @@ myHighlight langs rawCode =
        Kate.highlightAs lang rawCode
 
 getTagsR :: String -> Handler RepHtml
-getTagsR repon = defaultLayout $ do
-                   let curPath = repon
-                   setTitle "Tags"
-                   $(widgetFile "tags")
+getTagsR repon = withRepo repon $ \git repo -> do
+  tags <- liftIO $ repoTags git repo
+  defaultLayout $ do
+    $(widgetFile "tags")
 
 getCommitsR :: String -> ObjPiece -> Handler RepHtml
-getCommitsR = undefined
+getCommitsR repon op@(ObjPiece br _) = withRepoObj repon op $ \git repo obj -> do
+  brs <- liftIO $ repoBranches git repo
+  commits <- liftIO (concat <$> mapM (repoCommitsForBranch git repo) brs)
+  return undefined
+  
 
 getCommitR :: String -> BS.ByteString -> Handler RepHtml
 getCommitR = undefined

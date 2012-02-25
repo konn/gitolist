@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fwarn-incomplete-patterns #-}
 {-# LANGUAGE DeriveDataTypeable, OverloadedStrings, DoAndIfThenElse #-}
-module DataTypes where
+module GitUtils where
 import Data.Data
 import Control.Exception
 import System.Git
@@ -87,17 +87,19 @@ repoTags :: Gitolite -> Repository -> IO [GitTag]
 repoTags git repo = do
   gitTags $ repoDir git repo
 
-repoCommitsForBranch :: Gitolite -> Repository -> String -> IO [GitCommit]
+repoCommitsForBranch :: Gitolite -> Repository -> Branch -> IO [GitCommit]
 repoCommitsForBranch git repo branch = do
-  gitCommitsForBranch (repoDir git repo) branch
+  gitCommitsForBranch branch (repoDir git repo)
 
-gitCommitsForBranch :: String -> GitDir -> IO [GitCommit]
+gitCommitsForBranch :: Branch -> GitDir -> IO [GitCommit]
 gitCommitsForBranch branch dir = do
-  runner . branchRef =<< gitBranch branch dir
+  runner $ branchRef branch
   where
     runner sha1 = do
       GoCommit _ c <- sha1ToObj sha1 dir
       (c:) . concat . rights <$> mapM (try' . runner) (commitParents c)
+
+-- gitGetUpdatedFiles :: GitCommit -> GitPath -> IO (GoBlob
 
 gitBranch :: String -> GitDir -> IO Branch
 gitBranch bName dir = do
@@ -127,7 +129,7 @@ gitTags dir = do
                     , tagger  = committer comm
                     , tagLog  = commitLog comm
                     }
-  
+
 
 gitPathToTarEntry :: Gitolite -> Repository -> GitPath -> IO [Tar.Entry]
 gitPathToTarEntry git repo path = runner path

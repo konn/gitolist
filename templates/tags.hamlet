@@ -1,2 +1,10 @@
-<h1>Tags of #{curPath}
-<p>Not implemented yet.
+<h2>
+  <a href=@{TreeR repon (mkObjPiece "master")}>
+    repon
+<h3>Tags of #{repon}
+<ul>
+  $forall tag <- tags
+    <li>
+      <a href=@{TreeR repon (mkObjPiece $ T.unpack $ T.decodeUtf8 $ tagName tag)}>
+        #{BS.unpack $ tagName tag}
+      \ - "#{T.decodeUtf8 $ tagLog tag}" by #{T.decodeUtf8 $ tagger tag}

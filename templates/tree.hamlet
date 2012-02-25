@@ -1,12 +1,4 @@
-<h2>
-  <a href=@{TreeR repon (mkObjPiece "master")}>
-    #{repon}
-<h3>
-  ^{curPath}
-<p>
-  <a href=@{CompressR repon (mkObjPiece com)}>
-    Get Tarball
-  <table>
+<table>
     $forall ent <- entries
       $if isRegularFile ent
         <tr>
