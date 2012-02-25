@@ -15,7 +15,8 @@ import qualified Data.Text.Encoding as T
 import qualified Codec.Archive.Tar as Tar
 import qualified Codec.Archive.Tar.Entry as Tar
 import qualified Codec.Archive.Zip as Zip
-import Data.Git
+import Data.Git hiding (GitTag(..), GitCommit(..))
+import qualified Data.Git as Git
 import qualified Data.ByteString.Lazy as LBS
 import Control.Applicative
 import System.Directory (doesFileExist, doesDirectoryExist, getDirectoryContents)
@@ -23,6 +24,9 @@ import Data.Monoid
 import Data.Conduit
 import Control.Monad.IO.Class
 import Control.Monad
+import Data.Time
+import Data.Maybe
+import System.Locale
 
 data Repository = Repository { repoName        :: RepoName
                              , repoPermissions :: [(Permission, [UserName])]
@@ -35,8 +39,6 @@ repoDir git repo = gitolitePath git </> repoName repo ++ ".git"
 permissionForUser :: UserName -> Repository -> [Permission]
 permissionForUser uName repo =
     map fst $ filter ((uName `elem`).snd) $ repoPermissions repo
-
-type Commit = GitPath
 
 listChildren :: Bool            -- List directory or not
              -> FilePath        -- Root path
@@ -73,63 +75,115 @@ sourceChildren lDir fp = Source { sourcePull = pull, sourceClose = close }
 
 data Branch = Branch { branchName :: String
                      , branchRef  :: SHA1
-                     , branchHEAD :: GitCommit
+                     , branchHEAD :: Commit
                      } deriving (Show, Eq, Typeable)
 
-try' :: IO a -> IO (Either SomeException a)
-try' = try
+try' :: IO a -> IO (Maybe a)
+try' act = either (const Nothing) Just <$> (try :: IO a -> IO (Either SomeException a)) act
 
 repoBranches :: Gitolite -> Repository -> IO [Branch]
 repoBranches git repo = do
   gitBranches $ repoDir git repo
 
-repoTags :: Gitolite -> Repository -> IO [GitTag]
+data Tag = Tag { tagName    :: String
+               , tagger     :: String
+               , tagDate    :: UTCTime
+               , tagMessage :: String
+               , tagRef     :: SHA1
+               }
+           deriving (Show, Eq, Typeable)
+
+data Commit = Commit { commitRef        :: SHA1
+                     , commitParent     :: Maybe SHA1
+                     , commitAuthor     :: String
+                     , commitAuthorDate :: UTCTime
+                     , committer        :: String
+                     , commitDate       :: UTCTime
+                     , commitLog        :: String
+                     } deriving (Show, Eq, Typeable)
+
+repoTags :: Gitolite -> Repository -> IO [Tag]
 repoTags git repo = do
   gitTags $ repoDir git repo
 
-repoCommitsForBranch :: Gitolite -> Repository -> Branch -> IO [GitCommit]
+repoCommitsForBranch :: Gitolite -> Repository -> Branch -> IO [Commit]
 repoCommitsForBranch git repo branch = do
   gitCommitsForBranch branch (repoDir git repo)
 
-gitCommitsForBranch :: Branch -> GitDir -> IO [GitCommit]
+gitCommitsForBranch :: Branch -> GitDir -> IO [Commit]
 gitCommitsForBranch branch dir = do
   runner $ branchRef branch
   where
     runner sha1 = do
-      GoCommit _ c <- sha1ToObj sha1 dir
-      (c:) . concat . rights <$> mapM (try' . runner) (commitParents c)
+      GoCommit _ gc <- sha1ToObj sha1 dir
+      let c = gitComToCommit gc
+      case commitParent c of
+        Just paren -> maybe [c] (c:) <$> try' (runner paren)
+        Nothing    -> return [c]
 
 -- gitGetUpdatedFiles :: GitCommit -> GitPath -> IO (GoBlob
+
+gitComToCommit :: Git.GitCommit -> Commit
+gitComToCommit (Git.GitCommit ref ps ath cmtr lg) =
+  let (author, authorDate)    = naiveSplitDate $ T.unpack $ T.decodeUtf8 ath
+      (committer, commitDate) = naiveSplitDate $ T.unpack $ T.decodeUtf8 cmtr
+  in Commit { commitRef        = ref
+            , commitParent     = listToMaybe ps
+            , commitAuthor     = author
+            , commitAuthorDate = authorDate
+            , committer        = committer
+            , commitDate       = commitDate
+            , commitLog        = T.unpack $ T.decodeUtf8 lg
+            }
 
 gitBranch :: String -> GitDir -> IO Branch
 gitBranch bName dir = do
   sha1 <- head . lines <$> readFile (dir </> "refs" </> "heads" </> bName)
   GoCommit _ comm <- sha1ToObj (SHA1 sha1) dir
-  return $ Branch bName (SHA1 sha1) comm
+  return $ Branch bName (SHA1 sha1) $ gitComToCommit comm
   
 gitBranches :: GitDir -> IO [Branch]
 gitBranches dir = do
   let branchPath = dir </> "refs" </> "heads"
   bs <- listChildren False branchPath
-  liftM rights . forM bs $ \fpath -> try' $ do
+  liftM catMaybes . forM bs $ \fpath -> try' $ do
     sha1 <- SHA1 . head . lines <$> readFile fpath
     GoCommit _ comm <- sha1ToObj sha1 dir
-    return $ Branch (makeRelative branchPath fpath) sha1 comm
+    return $ Branch (makeRelative branchPath fpath) sha1 (gitComToCommit comm)
 
-gitTags :: GitDir -> IO [GitTag]
+gitTags :: GitDir -> IO [Tag]
 gitTags dir = do
   let tagsPath = dir </> "refs" </> "tags"
   ts <- listChildren False tagsPath
-  liftM rights . forM ts $ \fpath -> try' $ do
+  liftM catMaybes . forM ts $ \fpath -> try' $ do
     sha1 <- SHA1 . head . lines <$> readFile fpath
-    GoCommit _ comm <- sha1ToObj sha1 dir
-    return $ GitTag { tagRef  = commitRef comm
-                    , tagType = ""
-                    , tagName = T.encodeUtf8 $ T.pack $ makeRelative tagsPath fpath
-                    , tagger  = committer comm
-                    , tagLog  = commitLog comm
-                    }
+    objs <- sha1ToObj sha1 dir
+    case objs of
+      GoCommit _ c -> do
+        let comm = gitComToCommit c
+            (tagger, tagDate)  = naiveSplitDate $ committer comm
+        return $ Tag { tagRef     = commitRef comm
+                     , tagName    = makeRelative tagsPath fpath
+                     , tagger     = tagger
+                     , tagMessage = commitLog comm
+                     , tagDate    = tagDate
+                     }
+      GoTag _ (Git.GitTag ref typ name tgr lg) -> do
+        let (tagger, tagDate) = naiveSplitDate $ T.unpack $ T.decodeUtf8 tgr
+        return $ Tag { tagRef     = ref
+                     , tagName    = T.unpack $ T.decodeUtf8 name
+                     , tagger     = tagger
+                     , tagDate    = tagDate
+                     , tagMessage = T.unpack $ T.decodeUtf8 lg
+                     }
+      _ -> throwIO $ ObjectError "Object mismatch"
 
+naiveSplitDate :: String -> (String, UTCTime)
+naiveSplitDate src =
+  let wds  = reverse $ words src
+      date = unwords $ reverse $ take 2 wds
+      tagger = unwords $ reverse $ drop 2 wds
+  in (tagger, readTime defaultTimeLocale "%s %z" date)
 
 gitPathToTarEntry :: Gitolite -> Repository -> GitPath -> IO [Tar.Entry]
 gitPathToTarEntry git repo path = runner path
@@ -151,6 +205,7 @@ gitPathToTarEntry git repo path = runner path
           let Right tPath = Tar.toTarPath True (rootPath </> makeRelative base p)
           (Tar.directoryEntry tPath : ) . concat <$>
             mapM (runner . (p </>) . fileName) es
+        _ -> return []
 
 tarGitPath :: Gitolite -> Repository -> GitPath -> IO LBS.ByteString
 tarGitPath git repo path = Tar.write <$> gitPathToTarEntry git repo path
@@ -212,6 +267,7 @@ data GitoliteException = GitError GitError
                        | FileError String
                        | ParseError ParseError
                        | ConfError String
+                       | ObjectError String
                          deriving (Show, Typeable)
 
 instance Exception GitoliteException

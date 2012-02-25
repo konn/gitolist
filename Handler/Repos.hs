@@ -3,7 +3,7 @@ module Handler.Repos where
 
 import Import hiding (fileName, joinPath)
 import Control.Monad
-import Data.Git
+import Data.Git hiding (GitTag(..), GitCommit(..))
 import System.Git
 import Text.Pandoc
 import Text.Pandoc.Highlighting
@@ -18,18 +18,22 @@ import qualified Data.ByteString.Lazy as LBS
 import Text.Blaze
 import Data.Char (toUpper)
 import Blaze.ByteString.Builder
-import Text.Blaze.XHtml1.Strict hiding (b, map)
+import Text.Blaze.XHtml1.Strict hiding (b, map, head, br)
 import qualified Text.Blaze.XHtml1.Strict.Attributes as B
 import Text.Blaze.XHtml1.Strict.Attributes (href, class_)
 import Data.Conduit
+import Control.Applicative
 import qualified Data.Conduit.List as LC
 import Data.Conduit.Zlib
-import Text.Hamlet (hamletFile)
+import Data.List (groupBy)
+import Data.Function
+import Control.Arrow
+import Data.Time
+import System.Locale
 
 fromBlob :: GitObject -> Maybe String
-fromBlob (GoBlob _ bs) = maybe (either (const Nothing) Just $ T.unpack <$> T.decodeUtf8' bs)
-                           (Just . flip decode bs) $
-                           detectEncoding bs
+fromBlob (GoBlob _ bs) = (flip decode bs =<< detectEncoding bs)
+                     <|> either (const Nothing) Just (T.unpack <$> T.decodeUtf8' bs)
 fromBlob _             = Nothing
 
 getTreeR :: String -> ObjPiece -> Handler RepHtml
@@ -122,8 +126,16 @@ getCommitsR :: String -> ObjPiece -> Handler RepHtml
 getCommitsR repon op@(ObjPiece br _) = withRepoObj repon op $ \git repo obj -> do
   brs <- liftIO $ repoBranches git repo
   commits <- liftIO (concat <$> mapM (repoCommitsForBranch git repo) brs)
-  return undefined
-  
+  let commitGroups = map (pprTime . commitDate . head &&& id) $
+                       groupBy ((==) `on` utctDay . commitDate) commits
+  repoLayout repon op $ do
+    $(widgetFile "commits")
+
+pprTime :: UTCTime -> String
+pprTime = formatTime defaultTimeLocale "%F"
+
+unSHA1 :: SHA1 -> BS.ByteString
+unSHA1 (SHA1 sha1) = T.encodeUtf8 $ T.pack sha1
 
 getCommitR :: String -> BS.ByteString -> Handler RepHtml
 getCommitR = undefined

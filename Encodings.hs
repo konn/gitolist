@@ -21,6 +21,7 @@ import Control.Exception
 import System.IO.Unsafe
 import Foreign.Marshal.Array
 import Prelude
+import Control.Monad
 
 detectEncoding :: BS.ByteString -> Maybe TextEncoding
 #ifdef charsetdetect
@@ -49,18 +50,22 @@ bufToString :: CharBuffer -> IO String
 bufToString b@(Buffer raw _ c l r) = withBuffer b $ \ptr ->
   peekCWStringLen (castPtr ptr `plusPtr` l, r - l)  
 
-decode :: TextEncoding -> BS.ByteString -> String
+decode :: TextEncoding -> BS.ByteString -> Maybe String
 decode (TextEncoding eName dec _) bs = unsafePerformIO $ do
   bracket dec close $ \decoder -> do
     fromBuf <- bsToBuffer bs
     toBuf   <- newCharBuffer (BS.length bs) WriteBuffer
     (rem, new) <- E.encode decoder fromBuf toBuf
-    bufToString new
+    if (isEmptyBuffer rem)
+       then Just `fmap` bufToString new
+       else return Nothing
 
-encode :: TextEncoding -> String -> BS.ByteString
+encode :: TextEncoding -> String -> Maybe  BS.ByteString
 encode (TextEncoding eName _ enc) str = unsafePerformIO $ do
   bracket enc close $ \encoder -> do
     fromBuf <- strToBuffer str
     toBuf   <- newByteBuffer (length str * 3) WriteBuffer
     (rem, new) <- E.encode encoder fromBuf toBuf
-    bufToBS new
+    if isEmptyBuffer rem
+       then Just `fmap` bufToBS new
+       else return Nothing

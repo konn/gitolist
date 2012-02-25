@@ -5,6 +5,12 @@
 <h2>
   <a href=@{TreeR repon $ mkObjPiece commit}>
     #{repon}
+  \
+  <a href=@{TagsR repon}>
+    Tags
+  \ 
+  <a href=@{CommitsR repon (mkObjPiece commit)}>
+    Commits
 <p>
   <a href=@{CompressR repon $ mkObjPiece commit}>
     Get Tarball

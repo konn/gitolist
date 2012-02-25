@@ -1,10 +1,10 @@
 <h2>
   <a href=@{TreeR repon (mkObjPiece "master")}>
-    repon
+    #{repon}
 <h3>Tags of #{repon}
 <ul>
   $forall tag <- tags
     <li>
-      <a href=@{TreeR repon (mkObjPiece $ T.unpack $ T.decodeUtf8 $ tagName tag)}>
-        #{BS.unpack $ tagName tag}
-      \ - "#{T.decodeUtf8 $ tagLog tag}" by #{T.decodeUtf8 $ tagger tag}
+      <a href=@{CompressR repon (mkObjPiece $ tagName tag)}>
+        #{repon}-#{tagName tag}.tar.gz
+      \ - "#{tagMessage tag}" by #{tagger tag}

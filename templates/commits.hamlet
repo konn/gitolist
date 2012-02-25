@@ -1,6 +1,11 @@
-<h1>Tags of#{curPath}
 <ul>
-  $forall c <- commits
+  $forall (d, cs) <- commitGroups
     <li>
-      <a href=@{CommitR (commitRef c)}>#{commitLog c} #
-      - #{commitRef c} by #{commitAuthor c}
+      #{d}
+      <ul>
+        $forall c <- cs
+          <li>
+            <a href=@{CommitR repon (unSHA1 $ commitRef c)}>#{commitLog c} #
+            - #{T.decodeUtf8 $ unSHA1 $ commitRef c} by #{commitAuthor c} #
+            - <a href=@{TreeR repon (mkObjPiece $ T.unpack $ T.decodeUtf8 $ unSHA1 $ commitRef c)}>
+                Browse Code

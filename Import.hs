@@ -18,7 +18,6 @@ module Import
     , isRegularFile
     , isDirectory
     , renderPath
-    , treeLink
     , module Encodings
     ) where
 
