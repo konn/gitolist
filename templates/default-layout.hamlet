@@ -1,3 +1,15 @@
+<p>
+  $maybe usr <- musr
+    You are logged in as #{userIdent usr}. #
+    <a href=@{AuthR LogoutR}>
+      logout
+    .
+  $nothing
+    You are the guest. #
+    <a href=@{AuthR LoginR}>
+      login
+    .
+    
 <h1>
   <a href=@{RootR}>
     <img src=@{StaticR img_logo_png}>

@@ -15,10 +15,9 @@
 
 <h2>TODOs
 <ul>
-  <li>Browser for Branches / Commits / Tags
-  <li>History
+  <li>Browser for individual Commit or History.
   <li>Provide url to clone repo thru ssh or https
-  <li>User login (via BASIC Auth or someghing)
+  <li>User registration system
   <li>Collaboration feature with Twitter, FaceBook, ...
   <li>Better Interfaces / design
   <li>Support Big Conf

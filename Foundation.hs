@@ -23,8 +23,8 @@ import Yesod.Default.Util (addStaticContentExternal)
 import Yesod.Static
 import Yesod.Persist
 import Yesod.Auth
-import Yesod.Auth.BrowserId
-import Yesod.Auth.GoogleEmail
+import Yesod.Auth.HashDB hiding (User, UserGeneric(..), UserId, UniqueUser)
+import Control.Applicative
 import Settings.StaticFiles
 import Yesod.Logger (Logger, logMsg, formatLogText)
 import qualified Settings
@@ -106,13 +106,12 @@ instance Yesod Gitolist where
     defaultLayout widget = do
         master <- getYesod
         mmsg <- getMessage
-
         -- We break up the default layout into two components:
         -- default-layout is the contents of the body tag, and
         -- default-layout-wrapper is the entire page. Since the final
         -- value passed to hamletToRepHtml cannot be a widget, this allows
         -- you to use normal widget features in default-layout.
-
+        musr <- fmap entityVal <$> maybeAuth
         pc <- widgetToPageContent $ do
             $(widgetFile "normalize")
             $(widgetFile "default-layout")
@@ -153,15 +152,10 @@ instance YesodAuth Gitolist where
     -- Where to send a user after logout
     logoutDest _ = RootR
 
-    getAuthId creds = runDB $ do
-        x <- getBy $ UniqueUser $ T.unpack (credsIdent creds)
-        case x of
-            Just (Entity uid _) -> return $ Just uid
-            Nothing -> do
-                fmap Just $ insert $ User (T.unpack $ credsIdent creds) Nothing
+    getAuthId = getAuthIdHashDB AuthR (Just . UniqueUser . T.unpack)
 
     -- You can add other plugins like BrowserID, email or OAuth here
-    authPlugins _ = [authBrowserId, authGoogleEmail]
+    authPlugins _ = [authHashDB (Just . UniqueUser . T.unpack)]
 
     authHttpManager = httpManager
 
@@ -188,6 +182,7 @@ repoLayout :: String -> ObjPiece -> Widget -> Handler RepHtml
 repoLayout repon op@(ObjPiece commit ps) widget = do
   master <- getYesod
   mmsg <- getMessage
+  musr <- fmap entityVal <$> maybeAuth
   let curPath = treeLink repon op
   pc <- widgetToPageContent $ do
     $(widgetFile "normalize")

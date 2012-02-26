@@ -31,7 +31,7 @@ type PersistConfig = MongoConf
 
 -- | The location of gitolite repositories.
 repositoriesPath :: FilePath
-repositoriesPath = "/path/to/the/repositories"
+repositoriesPath = "/Users/hiromi/konn-git/repositories"
 
 codeStyle :: Style
 codeStyle = espresso

@@ -1,24 +1,24 @@
 Default: &defaults
-  user: mock
-  password: mock
+  user: gitolist
+  password: gitolistadmin
   host: localhost
   port: 27017
-  database: mock
+  database: gitolist
   poolsize: 10
 
 Development:
   <<: *defaults
 
 Test:
-  database: mock_test
+  database: gitolist_test
   <<: *defaults
 
 Staging:
-  database: mock_staging
+  database: gitolist_staging
   poolsize: 100
   <<: *defaults
 
 Production:
-  database: mock_production
+  database: gitolist_production
   poolsize: 100
   <<: *defaults
