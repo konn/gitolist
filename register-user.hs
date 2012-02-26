@@ -12,7 +12,7 @@ import Data.Text hiding (head)
 import Prelude hiding (getLine, lines, putStr)
 import qualified Prelude
 import qualified Settings
-import System.IO
+import System.IO (hFlush, stdout)
 import Model
 
 main :: IO ()

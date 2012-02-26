@@ -7,6 +7,6 @@ p#desc {
    align: center;
 }
 
-h1 {
+h1#logo {
     text-align: center
 }
