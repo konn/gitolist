@@ -29,12 +29,11 @@ import Settings.StaticFiles
 import Yesod.Logger (Logger, logMsg, formatLogText)
 import qualified Settings
 import Settings (Extra (..), widgetFile, repositoriesPath)
-import Control.Monad.IO.Class (liftIO)
 import Network.HTTP.Conduit (Manager)
 import Web.ClientSession (getKey)
 import Text.Hamlet (hamletFile)
 import qualified Database.Persist.Store
-import Database.Persist.MongoDB
+import Database.Persist.MongoDB hiding (master)
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T

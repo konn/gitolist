@@ -1,0 +1,9 @@
+<h2>
+  <a href=@{TreeR repon (mkObjPiece "master")}>
+    #{repon}
+<h3>Branches of #{repon}
+<ul>
+  $forall branch <- branches
+    <li>
+      <a href=@{TreeR repon (mkObjPiece $ branchName branch)}>
+        #{branchName branch}

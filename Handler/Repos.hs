@@ -147,3 +147,10 @@ getCompressR repon (ObjPiece c path) = withRepo repon $ \git repo -> do
     T.concat ["attachment; finename=\"", T.pack (repon ++ "-" ++ c), ".tar.gz\""]
   return $ RepTarball $ ContentSource $
              LC.sourceList (LBS.toChunks tar) $= gzip $= LC.map (Chunk . fromByteString)
+
+getBranchesR :: String -> Handler RepHtml
+getBranchesR repon = withRepo repon $ \git repo -> do
+  branches <- liftIO $ repoBranches git repo
+  defaultLayout $ do
+    setTitle $ toHtml $ "branches for " ++ repon
+    $(widgetFile "branches")

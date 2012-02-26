@@ -37,8 +37,8 @@ parseGitolite path = do
           case ads of
             []      -> throwIO $ ConfError "No settings about gitolite-admin"
             _:_:_   -> throwIO $ ConfError "Too many settings about gitolite-admin"
-            [admin] -> do
-              return $ Gitolite { gitolitePath = path, admin = admin, repositories = rest, users = us}
+            [adm] -> do
+              return $ Gitolite { gitolitePath = path, admin = adm, repositories = rest, users = us}
     _ -> throwIO $ FileError "gitolite.conf not found"
 
 getUsers :: FilePath -> IO [User]

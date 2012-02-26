@@ -8,19 +8,16 @@ import Data.ByteString.Char8 (ByteString)
 import Text.Parsec (ParseError)
 import System.FilePath
 import Prelude
-import Data.Either
 import Data.Monoid
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Codec.Archive.Tar as Tar
 import qualified Codec.Archive.Tar.Entry as Tar
-import qualified Codec.Archive.Zip as Zip
 import Data.Git hiding (GitTag(..), GitCommit(..))
 import qualified Data.Git as Git
 import qualified Data.ByteString.Lazy as LBS
 import Control.Applicative
 import System.Directory (doesFileExist, doesDirectoryExist, getDirectoryContents)
-import Data.Monoid
 import Data.Conduit
 import Control.Monad.IO.Class
 import Control.Monad
@@ -126,13 +123,13 @@ gitCommitsForBranch branch dir = do
 gitComToCommit :: Git.GitCommit -> Commit
 gitComToCommit (Git.GitCommit ref ps ath cmtr lg) =
   let (author, authorDate)    = naiveSplitDate $ T.unpack $ T.decodeUtf8 ath
-      (committer, commitDate) = naiveSplitDate $ T.unpack $ T.decodeUtf8 cmtr
+      (ctr, cd) = naiveSplitDate $ T.unpack $ T.decodeUtf8 cmtr
   in Commit { commitRef        = ref
             , commitParent     = listToMaybe ps
             , commitAuthor     = author
             , commitAuthorDate = authorDate
-            , committer        = committer
-            , commitDate       = commitDate
+            , committer        = ctr
+            , commitDate       = cd
             , commitLog        = T.unpack $ T.decodeUtf8 lg
             }
 
@@ -167,12 +164,12 @@ gitTags dir = do
                      , tagMessage = commitLog comm
                      , tagDate    = commitDate comm
                      }
-      GoTag _ (Git.GitTag ref typ name tgr lg) -> do
-        let (tagger, tagDate) = naiveSplitDate $ T.unpack $ T.decodeUtf8 tgr
+      GoTag _ (Git.GitTag ref _ name tgr lg) -> do
+        let (tr, td) = naiveSplitDate $ T.unpack $ T.decodeUtf8 tgr
         return $ Tag { tagRef     = ref
                      , tagName    = T.unpack $ T.decodeUtf8 name
-                     , tagger     = tagger
-                     , tagDate    = tagDate
+                     , tagger     = tr
+                     , tagDate    = td
                      , tagMessage = T.unpack $ T.decodeUtf8 lg
                      }
       _ -> throwIO $ ObjectError "Object mismatch"
@@ -181,8 +178,8 @@ naiveSplitDate :: String -> (String, UTCTime)
 naiveSplitDate src =
   let wds  = reverse $ words src
       date = unwords $ reverse $ take 2 wds
-      tagger = unwords $ reverse $ drop 2 wds
-  in (tagger, readTime defaultTimeLocale "%s %z" date)
+      tgr = unwords $ reverse $ drop 2 wds
+  in (tgr, readTime defaultTimeLocale "%s %z" date)
 
 gitPathToTarEntry :: Gitolite -> Repository -> GitPath -> IO [Tar.Entry]
 gitPathToTarEntry git repo path = runner path
@@ -197,7 +194,7 @@ gitPathToTarEntry git repo path = runner path
     runner p = do
       obj <- gitPathToObj p dir
       case obj of
-        GoBlob size src -> do
+        GoBlob _ src -> do
           let Right tPath = Tar.toTarPath False (rootPath </> makeRelative base p)
           return [Tar.fileEntry tPath $ LBS.fromChunks [src]]
         GoTree _ es -> do

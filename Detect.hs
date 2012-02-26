@@ -28,12 +28,12 @@ detectEncodingName bs
     | otherwise =
         let euc  = ptsEUC bs
             sjis = ptsSJIS bs
-            utf8 = ptsUTF8 bs
-        in if euc > sjis && euc > utf8
+            utf_8 = ptsUTF8 bs
+        in if euc > sjis && euc > utf_8
            then Just "EUC-JP"
-           else if (sjis > euc && sjis > utf8)
+           else if (sjis > euc && sjis > utf_8)
            then Just "Shift_JIS"
-           else if (utf8 > euc && utf8 > sjis)
+           else if (utf_8 > euc && utf_8 > sjis)
            then Just "UTF-8"
            else Nothing
 
@@ -56,6 +56,8 @@ inRange (from, to) = satisfy $ \w -> from <= w && w <= to
 
 ptsEUC :: ByteString -> Integer
 ptsEUC = either error sum . parseOnly (many ptEUC) 
+
+ptEUC :: Parser Integer
 ptEUC = skipWhile garbage *> body
   where
     garbage w = (w /= 0x8F) && (w < 0xA1 || 0xFE < w) && (w /= 0x8E)
@@ -65,6 +67,7 @@ ptEUC = skipWhile garbage *> body
 
 ptsUTF8 :: ByteString -> Integer
 ptsUTF8 = either error sum . parseOnly (many ptUTF8)
+ptUTF8 :: Parser Integer
 ptUTF8 = skipWhile garbage *> body
   where
     garbage w = (w < 0xE0 || 0xEF < w) && (w < 0xC0 || 0xDF < w)

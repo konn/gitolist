@@ -4,8 +4,8 @@ module Encodings ( encode, decode, TextEncoding
                  , detectEncoding
                  ) where
 import qualified Data.ByteString as BS
-import qualified Data.ByteString.Lazy as LBS
 #ifdef charsetdetect
+import qualified Data.ByteString.Lazy as LBS
 import qualified Codec.Text.Detect as D
 #else
 import qualified Detect as D
@@ -20,8 +20,7 @@ import Data.Word
 import Control.Exception
 import System.IO.Unsafe
 import Foreign.Marshal.Array
-import Prelude
-import Control.Monad
+import Prelude hiding (rem)
 
 detectEncoding :: BS.ByteString -> Maybe TextEncoding
 #ifdef charsetdetect
@@ -31,7 +30,7 @@ detectEncoding bs = unsafePerformIO $ D.detectEncoding bs
 #endif
 
 bufToBS :: Buffer Word8 -> IO BS.ByteString
-bufToBS b@(Buffer raw _ c l r) = withBuffer b $ \ptr -> do
+bufToBS b@(Buffer _ _ _ l r) = withBuffer b $ \ptr -> do
   BS.packCStringLen (ptr `plusPtr` l, r - l)
 
 bsToBuffer :: BS.ByteString -> IO (Buffer Word8)
@@ -47,11 +46,11 @@ strToBuffer str = do
   return $ Buffer fptr ReadBuffer len 0 len
 
 bufToString :: CharBuffer -> IO String
-bufToString b@(Buffer raw _ c l r) = withBuffer b $ \ptr ->
+bufToString b@(Buffer _ _ _ l r) = withBuffer b $ \ptr ->
   peekCWStringLen (castPtr ptr `plusPtr` l, r - l)  
 
 decode :: TextEncoding -> BS.ByteString -> Maybe String
-decode (TextEncoding eName dec _) bs = unsafePerformIO $ do
+decode (TextEncoding _ dec _) bs = unsafePerformIO $ do
   bracket dec close $ \decoder -> do
     fromBuf <- bsToBuffer bs
     toBuf   <- newCharBuffer (BS.length bs) WriteBuffer
@@ -61,7 +60,7 @@ decode (TextEncoding eName dec _) bs = unsafePerformIO $ do
        else return Nothing
 
 encode :: TextEncoding -> String -> Maybe  BS.ByteString
-encode (TextEncoding eName _ enc) str = unsafePerformIO $ do
+encode (TextEncoding _ _ enc) str = unsafePerformIO $ do
   bracket enc close $ \encoder -> do
     fromBuf <- strToBuffer str
     toBuf   <- newByteBuffer (length str * 3) WriteBuffer
