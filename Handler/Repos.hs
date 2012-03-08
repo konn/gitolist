@@ -31,11 +31,6 @@ import Control.Arrow
 import Data.Time
 import System.Locale
 
-fromBlob :: GitObject -> Maybe String
-fromBlob (GoBlob _ bs) = (flip decode bs =<< detectEncoding bs)
-                     <|> either (const Nothing) Just (T.unpack <$> T.decodeUtf8' bs)
-fromBlob _             = Nothing
-
 getTreeR :: String -> ObjPiece -> Handler RepHtml
 getTreeR repon op@(ObjPiece com xs) = withRepoObj repon op $ \git repo obj -> do
   unless (isTree obj) $ notFound
@@ -116,7 +111,7 @@ myHighlight langs rawCode =
 getTagsR :: String -> Handler RepHtml
 getTagsR repon = withRepo repon $ \git repo -> do
   tags <- liftIO $ repoTags git repo
-  defaultLayout $ do
+  repoLayout repon (ObjPiece "master" []) $ do
     $(widgetFile "tags")
 
 getCommitsR :: String -> ObjPiece -> Handler RepHtml

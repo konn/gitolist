@@ -10,38 +10,53 @@
       login
     .
 
-<h1 #logo>
-  <a href=@{RootR}>
-    <img src=@{StaticR img_logo_png}>
-<p #desc>The simple web frontend for Gitolite
-<h2>
-  <a href=@{TreeR repon $ mkObjPiece commit}>
-    #{repon}
-<p>
-  <a href=@{TagsR repon}>
-    Tags
-  \ 
-  <a href=@{CommitsR repon (mkObjPiece commit)}>
-    Commits
-  \
-  <div .btn-group>
-    <a .btn .dropdown-toggle data-toggle="dropdown" href="#">
-      #{commit}
-      \
-      <span .caret>
-    <ul .dropdown-menu>
-      $forall branch <- branches
-        <li>
-          <a href=@{TreeR repon (mkObjPiece $ branchName branch)}>
-            #{branchName branch}
+<div .page-header>
+  <h1 #logo>
+    <a href=@{RootR}>
+      <img src=@{StaticR img_logo_png}>
+  <p #desc>The simple web frontend for Gitolite
 
-<p>
-  <form action=@{CompressR repon $ mkObjPiece commit} method="GET">
-    <button .btn>
-      Tarball
-<h3>
-  ^{curPath}
+<div .container>
+  <div .well>
+    <h2>
+      <a href=@{TreeR repon $ mkObjPiece commit}>
+        #{repon}
+    <div .btn-group>
+      <form action=@{CompressR repon $ mkObjPiece commit} method="GET">
+        <button .btn>
+          Get Tarball
+    <p>
+      $maybe desc <- description
+        #{desc}
+      $nothing
+        No description yet.
 
-^{widget}
-<footer>
-    #{extraCopyright $ appExtra $ settings master}
+  <span .btn-group>
+      <a .btn .dropdown-toggle data-toggle="dropdown" href="#">
+        #{commit}
+        \
+        <span .caret>
+      <ul .dropdown-menu>
+        $forall branch <- branches
+          <li>
+            <a href=@{TreeR repon (mkObjPiece $ branchName branch)}>
+              #{branchName branch}
+  
+  <ul .nav .nav-tabs>
+    <li #tab_files>
+      <a href=@{TreeR repon (mkObjPiece "master")}>
+        Files
+    <li #tab_tags>
+      <a href=@{TagsR repon}>
+        Tags
+    <li #tab_commits>
+      <a href=@{CommitsR repon (mkObjPiece commit)}>
+        Commits
+  $if not (curTab == "tab_tags")
+    <h3>
+      ^{curPath}
+  
+  ^{widget}
+  <footer>
+      #{extraCopyright $ appExtra $ settings master}
+  

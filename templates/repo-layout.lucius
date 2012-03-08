@@ -6,3 +6,7 @@ p#desc {
    font-size: small;
    align: center;
 }
+
+h1#logo {
+    text-align: center
+}

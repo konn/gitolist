@@ -9,11 +9,14 @@
     <a href=@{AuthR LoginR}>
       login
     .
-    
-<h1 #logo>
-  <a href=@{RootR}>
-    <img src=@{StaticR img_logo_png}>
-<p #desc>A simple web frontend for Gitolite
-^{widget}
-<footer>
-    #{extraCopyright $ appExtra $ settings master}
+
+<div .page-header>
+  <h1 #logo>
+    <a href=@{RootR}>
+      <img src=@{StaticR img_logo_png}>
+
+<div .container>
+  <p #desc>A simple web frontend for Gitolite
+  ^{widget}
+  <footer>
+      #{extraCopyright $ appExtra $ settings master}

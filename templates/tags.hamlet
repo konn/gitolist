@@ -1,6 +1,3 @@
-<h2>
-  <a href=@{TreeR repon (mkObjPiece "master")}>
-    #{repon}
 <h3>Tags of #{repon}
 <ul>
   $forall tag <- tags

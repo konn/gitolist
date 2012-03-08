@@ -118,6 +118,15 @@ repoLayout :: String -> ObjPiece -> Widget -> Handler RepHtml
 repoLayout repon op@(ObjPiece commit ps) widget = withRepoObj repon op $ \git repo obj -> do
   master <- getYesod
   mmsg <- getMessage
+  route <- getCurrentRoute
+  let curTab = case route of
+                 Just (TreeR _ _)    -> "tab_files" :: String
+                 Just (BlobR _ _)    -> "tab_files"
+                 Just (TagsR _)      -> "tab_tags"
+                 Just (CommitsR _ _) -> "tab_commits"
+                 Just (CommitR _ _)  -> "tab_commits"
+                 _                   -> "tab_files"
+  description <- liftIO $ getDescription git repo
   branches <- liftIO $ repoBranches git repo
   musr <- fmap entityVal <$> maybeAuth
   let curPath = treeLink repon op

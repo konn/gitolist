@@ -24,6 +24,10 @@ import Control.Monad
 import Data.Time
 import Data.Maybe
 import System.Locale
+import Data.Char
+import Text.Pandoc
+import Data.List (find)
+import Encodings
 
 data Repository = Repository { repoName        :: RepoName
                              , repoPermissions :: [(Permission, [UserName])]
@@ -77,6 +81,47 @@ data Branch = Branch { branchName :: String
 
 try' :: IO a -> IO (Maybe a)
 try' act = either (const Nothing) Just <$> (try :: IO a -> IO (Either SomeException a)) act
+
+getDescription :: Gitolite -> Repository -> IO (Maybe String)
+getDescription git repo = do
+  let desc = repoDir git repo </> "description"
+  ext <- doesFileExist desc
+  if ext
+    then Just <$> readFile desc
+    else do
+      obj <- gitPathToObj "/" $ repoDir git repo
+      case obj of
+        GoTree _ es -> do
+          case find ((=="README") . map toUpper . dropExtension . fileName) es of
+            Just (GitTreeEntry (RegularFile _) fname ref) -> do
+              blob <- sha1ToObj ref $ repoDir git repo
+              case fromBlob blob of
+                Just src -> do
+                  let ext         = takeExtension fname
+                      Pandoc _ bs = fromMaybe (readMarkdown defaultParserState) (lookup ext pandocDic) src
+                  return $ listToMaybe $ mapMaybe p bs
+                _ -> return Nothing
+            _ -> return Nothing
+        _ -> return Nothing
+  where
+    p h@(Header 1 _) = Just $ writePlain defaultWriterOptions $ Pandoc (Meta [] [] []) [h]
+    p _              = Nothing
+    pandocDic :: [(String, String -> Pandoc)]
+    pandocDic = [(".xhtml", readHtml defaultParserState)
+                ,(".html", readHtml defaultParserState)
+                ,(".htm", readHtml defaultParserState)
+                ,(".rst", readRST defaultParserState)
+                ,(".textile", readTextile defaultParserState)
+                ,(".md", readMarkdown defaultParserState)
+                ,(".markdown", readMarkdown defaultParserState)
+                ]
+
+
+fromBlob :: GitObject -> Maybe String
+fromBlob (GoBlob _ bs) = (flip decode bs =<< detectEncoding bs)
+                     <|> either (const Nothing) Just (T.unpack <$> T.decodeUtf8' bs)
+fromBlob _             = Nothing
+
 
 repoBranches :: Gitolite -> Repository -> IO [Branch]
 repoBranches git repo = do

@@ -7,5 +7,6 @@
           <li>
             <a href=@{CommitR repon (unSHA1 $ commitRef c)}>#{commitLog c} #
             - #{T.decodeUtf8 $ unSHA1 $ commitRef c} by #{commitAuthor c} #
-            - <a href=@{TreeR repon (mkObjPiece $ T.unpack $ T.decodeUtf8 $ unSHA1 $ commitRef c)}>
-                Browse Code
+            - #
+            <a href=@{TreeR repon (mkObjPiece $ T.unpack $ T.decodeUtf8 $ unSHA1 $ commitRef c)}>
+              Browse Code

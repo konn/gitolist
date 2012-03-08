@@ -1,14 +1,14 @@
-<table>
+<table .table .table-bordered .table-striped .table-condensed>
     $forall ent <- entries
       $if isRegularFile ent
         <tr>
-          <td>
+          <td .icon>
             <img height="30px" width="30px" src=@{StaticR img_file_jpg}>
           <td>
             <a href=@{BlobR repon (mkP ent)}>#{fileName ent}
       $elseif isDirectory ent
         <tr>
-          <td>
+          <td .icon>
             <img height="30px" width="30px" src=@{StaticR img_dir_jpg}>
           <td>
             <a href=@{TreeR repon (mkP ent)}>#{fileName ent}
@@ -21,5 +21,6 @@
 $maybe rm <- readme
   <h3>
     README
-  <article>
-    #{rm}
+  <div .well>
+    <article>
+      #{rm}
