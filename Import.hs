@@ -12,6 +12,8 @@ module Import
     , withRepo
     , withRepoObj
     , isBlob
+    , repoLayout
+    , treeLink
     , isTree
     , module Yesod.Auth
     , module ContentTypes
@@ -22,8 +24,10 @@ module Import
     ) where
 
 import Yesod.Auth hiding (Route)
+import Yesod.Default.Config
 import Prelude hiding (writeFile, readFile, catch)
 import Foundation
+import Text.Hamlet (hamletFile)
 import Data.Monoid (Monoid (mappend, mempty, mconcat))
 import Control.Applicative ((<$>), (<*>), pure)
 import Data.Text (Text)
@@ -90,3 +94,38 @@ renderPath (ObjPiece a b) = intercalate "/" (a:b)
 infixr 5 <>
 (<>) :: Monoid m => m -> m -> m
 (<>) = mappend
+
+treeLink :: String -> ObjPiece -> Widget
+treeLink repon (ObjPiece c as) =
+  let ents = if null as then [[]] else init $ inits as
+  in [whamlet|
+     <ul .breadcrumb>
+       $forall e <- ents
+        <li>
+           <span .divider>/
+           <a href=@{TreeR repon (ObjPiece c e)}>
+             $if null e
+               #{c}
+             $else
+               #{last e}
+       $if (not (null as))
+         <li>
+           <span .divider>/ #
+           #{last as}
+     |]
+
+repoLayout :: String -> ObjPiece -> Widget -> Handler RepHtml
+repoLayout repon op@(ObjPiece commit ps) widget = withRepoObj repon op $ \git repo obj -> do
+  master <- getYesod
+  mmsg <- getMessage
+  branches <- liftIO $ repoBranches git repo
+  musr <- fmap entityVal <$> maybeAuth
+  let curPath = treeLink repon op
+  pc <- widgetToPageContent $ do
+    addScriptRemote "https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"
+    addScript $ StaticR js_bootstrap_dropdown_js
+    addStylesheet $ StaticR css_bootstrap_responsive_css
+    addStylesheet $ StaticR css_bootstrap_css
+    $(widgetFile "normalize")
+    $(widgetFile "repo-layout")
+  hamletToRepHtml $(hamletFile "templates/default-layout-wrapper.hamlet")

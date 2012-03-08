@@ -91,14 +91,11 @@ getBlobR repon op@(ObjPiece c ps) = withRepoObj repon op $ \git repo obj -> do
               Just reader -> writeHtml defaultWriterOptions $ reader src
               _ -> myHighlight (Kate.languagesByFilename $ last ps) src
           _ ->
-            table ! class_ "sourceCode" $
-              tr ! class_ "sourceCode" $
-                mconcat
-                  [ td ! class_ "lineNumbers" $ pre " "
-                  , td ! class_ "sourceCode" $ pre $
-                       code ! class_ "sourceCode plain" $
-                          a ! href (toValue $ renderUrl $ RawBlobR repon op) $ "see raw file"
-                  ]
+            pre ! class_ "sourceCode linenums" $ do
+              td ! class_ "lineNumbers" $ pre " "
+              td ! class_ "sourceCode" $ pre $
+                code ! class_ "sourceCode plain" $
+                  a ! href (toValue $ renderUrl $ RawBlobR repon op) $ "see raw file"
   repoLayout repon op $ do
     setTitle $ fromString $ repon ++ " - Gitolist"
     $(widgetFile "blob")

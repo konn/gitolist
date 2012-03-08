@@ -13,7 +13,7 @@
 <h1 #logo>
   <a href=@{RootR}>
     <img src=@{StaticR img_logo_png}>
-<p #desc>A simple web frontend for Gitolite
+<p #desc>The simple web frontend for Gitolite
 <h2>
   <a href=@{TreeR repon $ mkObjPiece commit}>
     #{repon}
@@ -23,11 +23,25 @@
   \ 
   <a href=@{CommitsR repon (mkObjPiece commit)}>
     Commits
+  \
+  <div .btn-group>
+    <a .btn .dropdown-toggle data-toggle="dropdown" href="#">
+      #{commit}
+      \
+      <span .caret>
+    <ul .dropdown-menu>
+      $forall branch <- branches
+        <li>
+          <a href=@{TreeR repon (mkObjPiece $ branchName branch)}>
+            #{branchName branch}
+
 <p>
-  <a href=@{CompressR repon $ mkObjPiece commit}>
-    Get Tarball
+  <form action=@{CompressR repon $ mkObjPiece commit} method="GET">
+    <button .btn>
+      Tarball
 <h3>
   ^{curPath}
+
 ^{widget}
 <footer>
     #{extraCopyright $ appExtra $ settings master}

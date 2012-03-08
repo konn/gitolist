@@ -11,8 +11,6 @@ module Foundation
     , module Settings
     , liftIO
     , mkObjPiece
-    , repoLayout
-    , treeLink
     ) where
 
 import Prelude
@@ -37,7 +35,6 @@ import Database.Persist.MongoDB hiding (master)
 import qualified Data.ByteString as BS
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import Data.List (inits)
 
 import Model
 
@@ -113,6 +110,8 @@ instance Yesod Gitolist where
         -- you to use normal widget features in default-layout.
         musr <- fmap entityVal <$> maybeAuth
         pc <- widgetToPageContent $ do
+            addScript $ StaticR js_bootstrap_js
+            addStylesheet $ StaticR css_bootstrap_css
             $(widgetFile "normalize")
             $(widgetFile "default-layout")
         hamletToRepHtml $(hamletFile "templates/default-layout-wrapper.hamlet")
@@ -161,30 +160,3 @@ instance YesodAuth Gitolist where
 
 instance RenderMessage Gitolist FormMessage where
     renderMessage _ _ = defaultFormMessage
-
-treeLink :: String -> ObjPiece -> Widget
-treeLink repon (ObjPiece c as) =
-  let ents = if null as then [[]] else init $ inits as
-  in [whamlet|
-       $forall e <- ents
-         \ / #
-         <a href=@{TreeR repon (ObjPiece c e)}>
-           $if null e
-             #{c}
-           $else
-             #{last e}
-       $if (not (null as))
-         $if (not (null as))
-           \ / #{last as}
-     |]
-
-repoLayout :: String -> ObjPiece -> Widget -> Handler RepHtml
-repoLayout repon op@(ObjPiece commit ps) widget = do
-  master <- getYesod
-  mmsg <- getMessage
-  musr <- fmap entityVal <$> maybeAuth
-  let curPath = treeLink repon op
-  pc <- widgetToPageContent $ do
-    $(widgetFile "normalize")
-    $(widgetFile "repo-layout")
-  hamletToRepHtml $(hamletFile "templates/default-layout-wrapper.hamlet")
