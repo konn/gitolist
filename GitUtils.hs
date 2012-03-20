@@ -122,6 +122,16 @@ fromBlob (GoBlob _ bs) = (flip decode bs =<< detectEncoding bs)
                      <|> either (const Nothing) Just (T.unpack <$> T.decodeUtf8' bs)
 fromBlob _             = Nothing
 
+traverseGoTree :: Gitolite -> Repository
+               -> [FilePath] -> GitObject -> IO GitObject
+traverseGoTree _ _ []     obj           = return obj
+traverseGoTree g r (p:ps) (GoTree _ es) = do
+  entry <- maybe (throwIO GitEntryNotExist) return $ find ((==p).fileName) es
+  traverseGoTree g r ps =<< sha1ToObj (fileRef entry) (repoDir g r)
+traverseGoTree _ _ _      _             = throwIO GitEntryNotExist
+
+repoBranch :: Gitolite -> Repository -> String -> IO Branch
+repoBranch git repo name = gitBranch name (repoDir git repo)
 
 repoBranches :: Gitolite -> Repository -> IO [Branch]
 repoBranches git repo = do

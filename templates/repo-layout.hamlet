@@ -50,7 +50,7 @@
       <a href=@{TagsR repon}>
         Tags
     <li #tab_commits>
-      <a href=@{CommitsR repon (mkObjPiece commit)}>
+      <a href=@{CommitsR repon (pure commit)}>
         Commits
   $if not (curTab == "tab_tags")
     <h3>

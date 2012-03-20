@@ -30,6 +30,7 @@ import Data.Function
 import Control.Arrow
 import Data.Time
 import System.Locale
+import System.Directory
 
 getTreeR :: String -> ObjPiece -> Handler RepHtml
 getTreeR repon op@(ObjPiece com xs) = withRepoObj repon op $ \git repo obj -> do
@@ -114,14 +115,29 @@ getTagsR repon = withRepo repon $ \git repo -> do
   repoLayout repon (ObjPiece "master" []) $ do
     $(widgetFile "tags")
 
-getCommitsR :: String -> ObjPiece -> Handler RepHtml
-getCommitsR repon op@(ObjPiece br _) = withRepoObj repon op $ \git repo obj -> do
+getCommitsR :: String -> [String] -> Handler RepHtml
+getCommitsR repon [] = withRepo repon $ \git repo -> do
   brs <- liftIO $ repoBranches git repo
   commits <- liftIO (concat <$> mapM (repoCommitsForBranch git repo) brs)
   let commitGroups = map (pprTime . commitDate . head &&& id) $
                        groupBy ((==) `on` utctDay . commitDate) commits
+  let op = ObjPiece "master" []
   repoLayout repon op $ do
     $(widgetFile "commits")
+
+getCommitsR repon (c:ps) = withRepo repon $ \git repo -> do
+  let (prfx, rest) = splitAt 2 c
+  isCommit <- liftIO $ doesFileExist (repoDir git repo </> "objects" </> prfx </> rest)
+  if isCommit
+    then redirect $ CommitsR repon []
+    else do
+      obj <- liftIO $ gitPathToObj "/" (repoDir git repo)
+      commits <- liftIO (repoCommitsForBranch git repo =<< gitBranch c (repoDir git repo))
+      let commitGroups = map (pprTime . commitDate . head &&& id) $
+                           groupBy ((==) `on` utctDay . commitDate) commits
+      let op = ObjPiece c ps
+      repoLayout repon op $ do
+        $(widgetFile "commits")
 
 pprTime :: UTCTime -> String
 pprTime = formatTime defaultTimeLocale "%F"

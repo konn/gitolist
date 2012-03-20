@@ -54,6 +54,7 @@ library
                 OverloadedStrings
                 MultiParamTypeClasses
                 TypeFamilies
+                TypeSynonymInstances
                 GADTs
                 GeneralizedNewtypeDeriving
                 FlexibleContexts
@@ -84,6 +85,7 @@ executable         gitolist
                 OverloadedStrings
                 MultiParamTypeClasses
                 TypeFamilies
+                TypeSynonymInstances
                 GADTs
                 GeneralizedNewtypeDeriving
                 FlexibleContexts
@@ -147,6 +149,7 @@ executable register-user
                 OverloadedStrings
                 MultiParamTypeClasses
                 TypeFamilies
+                TypeSynonymInstances
                 GADTs
                 GeneralizedNewtypeDeriving
                 FlexibleContexts

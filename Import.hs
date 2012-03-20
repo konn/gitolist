@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Import
     ( module Prelude
     , module Foundation
@@ -43,6 +44,9 @@ import Database.Persist.Store
 import qualified Data.Text as T
 import Encodings
 import ContentTypes
+import Control.Exception (try, SomeException(..))
+import System.FilePath
+import System.Directory
 
 isBlob, isTree :: Git.GitObject -> Bool
 isBlob (Git.GoBlob _ _) = True
@@ -64,8 +68,17 @@ withRepoObj :: String
             -> Handler a
 withRepoObj repon (ObjPiece commit path) act = do
   withRepo repon $ \git repo -> do
-    let curPath = intercalate "/" $ commit:path
-    obj <- liftIO $ Git.gitPathToObj curPath (repoDir git repo)
+    let gitDir         = repoDir git repo
+        (prefix, rest) = splitAt 2 commit
+    
+    root <- liftIO $ do
+      isHash <- doesFileExist $ gitDir </> "objects" </> prefix </> rest
+      if isHash
+        then Git.sha1ToObj (Git.SHA1 commit) gitDir
+        else repoBranch git repo commit >>= flip Git.sha1ToObj gitDir . commitRef . branchHEAD
+    let curPath = intercalate "/" (commit:path)
+    liftIO $ print root
+    obj <- liftIO $ traverseGoTree git repo path root
     setSessionBS "curPath" (BS.pack curPath)
     ans <- act git repo obj
     deleteSession "curPath"

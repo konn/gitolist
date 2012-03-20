@@ -56,6 +56,8 @@ instance PathPiece BS.ByteString where
   toPathPiece bs = T.decodeUtf8 bs
   fromPathPiece t = Just $ T.encodeUtf8 t
 
+type Strings = [String]
+
 data ObjPiece = ObjPiece String [FilePath]
                 deriving (Show, Eq, Ord, Read)
 
