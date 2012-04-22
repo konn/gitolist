@@ -58,22 +58,6 @@ listChildren lDir fp = do
     then return [fp]
     else return []
 
-sourceChildren :: ResourceIO m => Bool -> FilePath -> Source m FilePath
-sourceChildren lDir fp = Source { sourcePull = pull, sourceClose = close }
-  where
-    close = return ()
-    pull  = do
-      isDir <- liftIO $ doesDirectoryExist fp
-      if isDir
-      then do
-        cs <- map (fp </>) . filter (`notElem` [".", ".."]) <$>
-                liftIO (getDirectoryContents fp)
-        let src = mconcat $ map (sourceChildren lDir) cs
-        if lDir then return $ Open src fp else sourcePull src
-      else do
-        isFile <- liftIO $ doesFileExist fp
-        if isFile then return $ Open mempty fp else return Closed
-
 data Branch = Branch { branchName :: String
                      , branchRef  :: SHA1
                      , branchHEAD :: Commit

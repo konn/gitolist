@@ -52,7 +52,7 @@
     <li #tab_commits>
       <a href=@{CommitsR repon (pure commit)}>
         Commits
-  $if not (curTab == "tab_tags")
+  $if not ((==) curTab "tab_tags")
     <h3>
       ^{curPath}
   

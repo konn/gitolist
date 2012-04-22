@@ -100,7 +100,9 @@ instance Yesod Gitolist where
     approot = ApprootMaster $ appRoot . settings
 
     -- Place the session key file in the config folder
-    encryptKey _ = fmap Just $ getKey "config/client_session_key.aes"
+    makeSessionBackend _ = do
+        key <- getKey "config/client_session_key.aes"
+        return . Just $ clientSessionBackend key 120
 
     defaultLayout widget = do
         master <- getYesod
@@ -134,7 +136,7 @@ instance Yesod Gitolist where
     addStaticContent = addStaticContentExternal (const $ Left ()) base64md5 Settings.staticDir (StaticR . flip StaticRoute [])
 
     -- Enable Javascript async loading
-    yepnopeJs _ = Just $ Right $ StaticR js_modernizr_js
+    jsLoader _ = BottomOfBody
 
 instance YesodPersist Gitolist where
     type YesodPersistBackend Gitolist = Action
