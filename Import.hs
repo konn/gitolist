@@ -77,7 +77,6 @@ withRepoObj repon (ObjPiece commit path) act = do
         then Git.sha1ToObj (Git.SHA1 commit) gitDir
         else repoBranch git repo commit >>= flip Git.sha1ToObj gitDir . commitRef . branchHEAD
     let curPath = intercalate "/" (commit:path)
-    liftIO $ print root
     obj <- liftIO $ traverseGoTree git repo path root
     setSessionBS "curPath" (BS.pack curPath)
     ans <- act git repo obj
